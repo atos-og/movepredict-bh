@@ -33,3 +33,17 @@ Frequência de atualização:
 - Como identificar o sentido da viagem?
 - Como saber se o ônibus já passou por um ponto?
 
+## Scripts de exploração
+
+### inspect_routes.py
+
+Script criado para ler o arquivo `routes.txt` do GTFS e listar as linhas encontradas.
+
+Caminho esperado do arquivo:
+
+```txt
+data-exploration/data/raw/routes.txt
+
+
+
+
