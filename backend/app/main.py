@@ -1,11 +1,21 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="API do Projeto")
+app = FastAPI(title="MovePredict BH API")
 
 
 @app.get("/")
-def inicio():
-    return {"mensagem": "Backend funcionando!"}
+def root():
+    return {
+        "message": "MovePredict BH API",
+        "status": "running",
+    }
+
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "ok",
+    }
 
 
 @app.get("/pontos")
@@ -24,3 +34,5 @@ def listar_pontos():
             "longitude": -43.172897,
         },
     ]
+
+
