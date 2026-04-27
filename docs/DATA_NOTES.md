@@ -134,3 +134,10 @@ Esse script será importante para criar futuramente endpoints como:
 
 - `GET /lines/{id}/stops`
 - `GET /lines/{id}/route`
+## Relação entre viagens e traçados
+
+O script `find_shape_by_trip.py` conecta `trips.txt` e `shapes.txt`.
+
+Ele permite entender o traçado geográfico de uma viagem por meio do `shape_id`.
+
+Essa relação será usada futuramente para desenhar rotas no mapa.
