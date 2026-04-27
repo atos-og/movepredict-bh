@@ -25,6 +25,18 @@ O script `inspect_routes.py` foi testado com o GTFS da PBH extraído em:
 ```txt
 data-exploration/data/raw/
 
+## Script de inspeção de pontos
+
+O script `inspect_stops.py` foi criado para ler o arquivo `stops.txt` do GTFS e listar os primeiros pontos encontrados.
+
+Campos lidos inicialmente:
+
+- `stop_id`
+- `stop_name`
+- `stop_lat`
+- `stop_lon`
+
+Esse script será usado para entender como os pontos de ônibus são representados no GTFS da PBH.
 
 
 
