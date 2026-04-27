@@ -53,5 +53,20 @@ Campos encontrados:
 
 Esse arquivo será importante para conectar linhas (`routes.txt`) com viagens específicas e, depois, com horários e trajetos.
 
+## Inspeção do arquivo stop_times.txt
+
+O arquivo `stop_times.txt` foi inspecionado para entender como o GTFS conecta viagens e pontos.
+
+Campos principais encontrados:
+
+- `trip_id`: identifica a viagem.
+- `arrival_time`: horário planejado de chegada no ponto.
+- `departure_time`: horário planejado de saída do ponto.
+- `stop_id`: identifica o ponto de ônibus.
+- `stop_sequence`: indica a ordem do ponto dentro da viagem.
+
+Esse arquivo é importante porque conecta as viagens de `trips.txt` com os pontos de `stops.txt`.
+
+Na prática, ele permite entender por quais pontos uma viagem passa e em qual ordem.
 
 
