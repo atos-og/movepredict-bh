@@ -38,6 +38,20 @@ Campos lidos inicialmente:
 
 Esse script será usado para entender como os pontos de ônibus são representados no GTFS da PBH.
 
+## Inspeção do arquivo trips.txt
+
+O arquivo `trips.txt` foi inspecionado para entender como o GTFS representa viagens associadas às linhas.
+
+Campos encontrados:
+
+- `route_id`: identifica a linha/rota associada à viagem.
+- `service_id`: identifica o serviço/calendário daquela viagem.
+- `trip_id`: identifica uma viagem específica.
+- `trip_headsign`: indica o destino ou letreiro da viagem.
+- `direction_id`: indica o sentido da viagem.
+- `shape_id`: relaciona a viagem ao traçado geográfico em `shapes.txt`.
+
+Esse arquivo será importante para conectar linhas (`routes.txt`) com viagens específicas e, depois, com horários e trajetos.
 
 
 
