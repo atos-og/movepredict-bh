@@ -82,3 +82,15 @@ Campos principais encontrados:
 
 Esse arquivo será importante para desenhar rotas no mapa futuramente.
 
+## Inspeção do arquivo calendar.txt
+
+O arquivo `calendar.txt` foi inspecionado para entender em quais dias cada serviço opera.
+
+Campos principais encontrados:
+
+- `service_id`: identifica o serviço/calendário.
+- `monday` a `sunday`: indicam se o serviço funciona em cada dia da semana.
+- `start_date`: data inicial de validade.
+- `end_date`: data final de validade.
+
+Esse arquivo será importante para entender quando uma viagem de `trips.txt` está ativa.
