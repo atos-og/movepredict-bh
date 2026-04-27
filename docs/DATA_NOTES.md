@@ -69,4 +69,16 @@ Esse arquivo é importante porque conecta as viagens de `trips.txt` com os ponto
 
 Na prática, ele permite entender por quais pontos uma viagem passa e em qual ordem.
 
+## Inspeção do arquivo shapes.txt
+
+O arquivo `shapes.txt` foi inspecionado para entender como o GTFS representa o traçado geográfico das rotas.
+
+Campos principais encontrados:
+
+- `shape_id`: identifica um traçado.
+- `shape_pt_lat`: latitude de um ponto do traçado.
+- `shape_pt_lon`: longitude de um ponto do traçado.
+- `shape_pt_sequence`: ordem do ponto dentro do traçado.
+
+Esse arquivo será importante para desenhar rotas no mapa futuramente.
 
