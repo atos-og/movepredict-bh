@@ -94,3 +94,27 @@ Campos principais encontrados:
 - `end_date`: data final de validade.
 
 Esse arquivo será importante para entender quando uma viagem de `trips.txt` está ativa.
+
+## Busca por linha no GTFS
+
+O script `find_route.py` permite buscar uma linha específica dentro de `routes.txt`.
+
+Ele pesquisa por:
+
+- `route_id`
+- `route_short_name`
+- `route_long_name`
+
+Esse script ajuda a investigar uma linha específica antes de levar essa lógica para a API.
+
+## Relação entre linhas e viagens
+
+O script `find_trips_by_route.py` investiga a relação entre `routes.txt` e `trips.txt`.
+
+Fluxo:
+
+1. Busca uma linha em `routes.txt`.
+2. Usa o `route_id` encontrado.
+3. Filtra viagens em `trips.txt` com o mesmo `route_id`.
+
+Essa relação é importante porque uma linha pode ter várias viagens, sentidos e trajetos.
