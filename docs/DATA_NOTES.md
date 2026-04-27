@@ -118,3 +118,11 @@ Fluxo:
 3. Filtra viagens em `trips.txt` com o mesmo `route_id`.
 
 Essa relação é importante porque uma linha pode ter várias viagens, sentidos e trajetos.
+
+## Relação entre viagens e pontos
+
+O script `find_stops_by_trip.py` conecta `trips.txt`, `stop_times.txt` e `stops.txt`.
+
+Ele permite investigar por quais pontos uma viagem passa e em qual ordem.
+
+Essa relação é essencial para futuramente prever chegada nos pontos.
