@@ -141,3 +141,11 @@ O script `find_shape_by_trip.py` conecta `trips.txt` e `shapes.txt`.
 Ele permite entender o traçado geográfico de uma viagem por meio do `shape_id`.
 
 Essa relação será usada futuramente para desenhar rotas no mapa.
+
+## Resumo de linha
+
+O script `route_overview.py` junta informações de `routes.txt`, `trips.txt`, `stop_times.txt` e `shapes.txt`.
+
+Ele oferece uma visão inicial de uma linha específica, incluindo viagens, sentidos, pontos e traçados.
+
+Esse script aproxima a exploração de dados dos futuros endpoints do backend.
