@@ -1,48 +1,30 @@
-# Data Notes — MovePredict BH
-
-Este arquivo registra descobertas sobre os dados públicos usados no projeto.
-
 ## Fontes oficiais
 
 ### GTFS PBH
 
-Link:
+Página oficial:
+
+https://dados.pbh.gov.br/dataset/gtfs
+
+URL de download:
+
+https://s3.amazonaws.com/mobilibus-uploads/gtfs/GTFSBHTRANS.zip
 
 Descrição:
 
-Arquivos esperados:
+Conjunto de arquivos em padrão GTFS contendo a especificação dos serviços do sistema de transporte convencional, incluindo MOVE, e suplementar.
 
-- routes.txt
-- stops.txt
-- trips.txt
-- trips.txt
-- stop_times.txt
-- shapes.txt
+Observação:
 
-### Dados em tempo real
+Segundo o portal da PBH, a URL de download do GTFS é fixa, embora o arquivo disponível seja atualizado diariamente.
 
-Link:
+## Resultado da inspeção de linhas
 
-Descrição:
-
-Frequência de atualização:
-
-## Perguntas em aberto
-
-- Como relacionar veículo com linha?
-- Como identificar o sentido da viagem?
-- Como saber se o ônibus já passou por um ponto?
-
-## Scripts de exploração
-
-### inspect_routes.py
-
-Script criado para ler o arquivo `routes.txt` do GTFS e listar as linhas encontradas.
-
-Caminho esperado do arquivo:
+O script `inspect_routes.py` foi testado com o GTFS da PBH extraído em:
 
 ```txt
-data-exploration/data/raw/routes.txt
+data-exploration/data/raw/
+
 
 
 
