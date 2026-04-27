@@ -126,3 +126,11 @@ O script `find_stops_by_trip.py` conecta `trips.txt`, `stop_times.txt` e `stops.
 Ele permite investigar por quais pontos uma viagem passa e em qual ordem.
 
 Essa relação é essencial para futuramente prever chegada nos pontos.
+## Relação entre linhas e pontos
+
+O script `find_stops_by_route.py` usa `routes.txt`, `trips.txt`, `stop_times.txt` e `stops.txt` para investigar os pontos atendidos por uma linha.
+
+Esse script será importante para criar futuramente endpoints como:
+
+- `GET /lines/{id}/stops`
+- `GET /lines/{id}/route`
