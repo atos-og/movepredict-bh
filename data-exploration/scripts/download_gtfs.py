@@ -1,6 +1,16 @@
 import os
+import zipfile
 from pathlib import Path
 from urllib.request import urlretrieve
+
+
+EXPECTED_GTFS_FILES = [
+    "routes.txt",
+    "stops.txt",
+    "trips.txt",
+    "stop_times.txt",
+    "shapes.txt",
+]
 
 
 def main() -> None:
@@ -16,18 +26,20 @@ def main() -> None:
         print("Defina a URL direta do arquivo GTFS antes de rodar o script.")
         print("")
         print("Exemplo no PowerShell:")
-        print('$env:PBH_GTFS_URL="COLE_A_URL_DIRETA_DO_GTFS_AQUI"')
+        print(
+            '$env:PBH_GTFS_URL="https://s3.amazonaws.com/mobilibus-uploads/gtfs/GTFSBHTRANS.zip"'
+        )
         return
 
-    output_file = raw_data_dir / "gtfs_pbh.zip"
+    zip_file = raw_data_dir / "gtfs_pbh.zip"
 
     print("MovePredict BH — Download GTFS")
     print("------------------------------")
     print(f"URL: {gtfs_url}")
-    print(f"Destino: {output_file}")
+    print(f"Destino: {zip_file}")
 
     try:
-        urlretrieve(gtfs_url, output_file)
+        urlretrieve(gtfs_url, zip_file)
     except Exception as error:
         print("")
         print("Erro ao baixar o arquivo GTFS.")
@@ -36,7 +48,35 @@ def main() -> None:
 
     print("")
     print("[OK] Download concluído.")
-    print(f"Arquivo salvo em: {output_file}")
+    print(f"Arquivo salvo em: {zip_file}")
+
+    print("")
+    print("Extraindo arquivos do GTFS...")
+
+    try:
+        with zipfile.ZipFile(zip_file, "r") as zip_ref:
+            zip_ref.extractall(raw_data_dir)
+    except zipfile.BadZipFile:
+        print("Erro: o arquivo baixado não parece ser um ZIP válido.")
+        return
+    except Exception as error:
+        print("Erro ao extrair o ZIP.")
+        print(f"Detalhes: {error}")
+        return
+
+    print("")
+    print("Verificando arquivos esperados:")
+
+    for file_name in EXPECTED_GTFS_FILES:
+        file_path = raw_data_dir / file_name
+
+        if file_path.exists():
+            print(f"[OK] {file_name}")
+        else:
+            print(f"[MISSING] {file_name}")
+
+    print("")
+    print("[OK] Processo finalizado.")
 
 
 if __name__ == "__main__":
