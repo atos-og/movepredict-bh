@@ -1,5 +1,7 @@
 from pathlib import Path
 import csv
+from fastapi import FastAPI, HTTPException
+from app.services.gtfs_service import list_lines
 
 from fastapi import FastAPI, HTTPException
 
@@ -84,3 +86,9 @@ def list_lines(limit: int = 20):
         "total_returned": len(result),
         "lines": result,
     }
+@app.get("/lines")
+def get_lines():
+    try:
+        return list_lines()
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error))
