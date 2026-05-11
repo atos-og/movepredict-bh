@@ -220,5 +220,4 @@ backend/.venv/
 backend_venv/
 
 # Project data files
-data-exploration/data/raw/
-data-exploration/data/processed/
+data-exploration/data/
