@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-
+from app.services.gtfs_service import list_lines, list_stops, get_line_by_id, get_stop_by_id
 from app.services.gtfs_service import list_lines, list_stops
 
 app = FastAPI(title="MovePredict BH API")
@@ -62,3 +62,21 @@ def get_stops():
         "total_returned": len(stops),
         "stops": stops,
     }
+
+@app.get("/lines/{route_id}")
+def get_line(route_id: str):
+    try:
+        return get_line_by_id(route_id)
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    
+@app.get("/stops/{stop_id}")
+def get_stop(stop_id: str):
+    try:
+        return get_stop_by_id(stop_id)
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error))

@@ -66,3 +66,20 @@ def list_stops() -> list[dict[str, str | None]]:
 
     return stops
 
+def get_line_by_id(route_id: str) -> dict[str, str | None]:
+    lines = list_lines()
+
+    for line in lines:
+        if line.get("route_id") == route_id:
+            return line
+
+    raise FileNotFoundError(f"Linha com route_id {route_id} não encontrada.")
+
+def get_stop_by_id(stop_id: str) -> dict[str, str | None]:
+    stops = list_stops()
+
+    for stop in stops:
+        if stop.get("stop_id") == stop_id:
+            return stop
+
+    raise ValueError(f"Ponto com stop_id {stop_id} não encontrado.")
