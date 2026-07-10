@@ -6,6 +6,7 @@ import type {
   LineStop,
   PageResponse,
   Stop,
+  Trip,
 } from "@/types/transit";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -49,14 +50,20 @@ function params(values: Record<string, string | number | undefined>): string {
 }
 
 export const api = {
-  listLines: (q = "", limit = 20) =>
-    request<PageResponse<Line>>(`/lines${params({ q: q || undefined, limit })}`),
+  listLines: (q = "", limit = 20, offset = 0) =>
+    request<PageResponse<Line>>(`/lines${params({ q: q || undefined, limit, offset })}`),
   getLine: (routeId: string) => request<DataResponse<Line>>(`/lines/${routeId}`),
-  getLineStops: (routeId: string) =>
-    request<DataResponse<LineStop[]>>(`/lines/${routeId}/stops`),
-  getLineRoute: (routeId: string) =>
-    request<DataResponse<LineRoute>>(`/lines/${routeId}/route`),
-  listStops: (q = "", limit = 20) =>
-    request<PageResponse<Stop>>(`/stops${params({ q: q || undefined, limit })}`),
+  getLineStops: (routeId: string, directionId?: string) =>
+    request<DataResponse<LineStop[]>>(
+      `/lines/${routeId}/stops${params({ direction_id: directionId })}`,
+    ),
+  getLineRoute: (routeId: string, directionId?: string) =>
+    request<DataResponse<LineRoute>>(
+      `/lines/${routeId}/route${params({ direction_id: directionId })}`,
+    ),
+  listLineTrips: (routeId: string) =>
+    request<PageResponse<Trip>>(`/lines/${routeId}/trips${params({ limit: 200 })}`),
+  listStops: (q = "", limit = 20, offset = 0) =>
+    request<PageResponse<Stop>>(`/stops${params({ q: q || undefined, limit, offset })}`),
   getStop: (stopId: string) => request<DataResponse<Stop>>(`/stops/${stopId}`),
 };

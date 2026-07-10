@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import {
   AlertCircle,
+  ArrowLeft,
   BusFront,
   ChevronRight,
   Clock3,
@@ -13,49 +14,63 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Line, LineRoute, LineStop, Stop } from "@/types/transit";
-import type { ArrivalPrediction, VehiclePosition } from "@/types/realtime";
+import type { Line, LineRoute, LineStop, PageMeta, Stop } from "@/types/transit";
+import type { VehiclePosition } from "@/types/realtime";
 
 const MapView = dynamic(() => import("@/components/map-view"), {
   ssr: false,
   loading: () => <div className="map-loading">Carregando mapa...</div>,
 });
 
+const PAGE_SIZE = 20;
+const vehicles: VehiclePosition[] = [];
+
 type SearchMode = "lines" | "stops";
+type SidebarView = "results" | "itinerary";
 type ApiStatus = "connecting" | "online" | "offline";
+type DirectionId = "0" | "1";
 
 export function TransitExplorer() {
   const [mode, setMode] = useState<SearchMode>("lines");
+  const [sidebarView, setSidebarView] = useState<SidebarView>("results");
   const [query, setQuery] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
   const [stops, setStops] = useState<Stop[]>([]);
+  const [lineMeta, setLineMeta] = useState<PageMeta | null>(null);
+  const [stopMeta, setStopMeta] = useState<PageMeta | null>(null);
   const [selectedLine, setSelectedLine] = useState<Line | null>(null);
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
   const [lineStops, setLineStops] = useState<LineStop[]>([]);
   const [route, setRoute] = useState<LineRoute | null>(null);
-  const [vehicles] = useState<VehiclePosition[]>([]);
-  const [predictions] = useState<ArrivalPrediction[]>([]);
+  const [direction, setDirection] = useState<DirectionId>("0");
+  const [availableDirections, setAvailableDirections] = useState<DirectionId[]>([]);
+  const [directionsLoading, setDirectionsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [stopsLoading, setStopsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showRoute, setShowRoute] = useState(true);
   const [showStops, setShowStops] = useState(true);
-  const [showVehicles, setShowVehicles] = useState(true);
   const [apiStatus, setApiStatus] = useState<ApiStatus>("connecting");
+  const detailRequest = useRef(0);
 
   const runSearch = useCallback(async (searchMode: SearchMode, searchQuery: string) => {
     setLoading(true);
     setError(null);
     try {
       if (searchMode === "lines") {
-        const response = await api.listLines(searchQuery);
+        const response = await api.listLines(searchQuery, PAGE_SIZE);
         setLines(response.data);
+        setLineMeta(response.meta);
       } else {
-        const response = await api.listStops(searchQuery);
+        const response = await api.listStops(searchQuery, PAGE_SIZE);
         setStops(response.data);
+        setStopMeta(response.meta);
       }
       setApiStatus("online");
     } catch (caught) {
@@ -72,43 +87,121 @@ export function TransitExplorer() {
   }, [runSearch]);
 
   function changeMode(nextMode: SearchMode) {
+    detailRequest.current += 1;
     setMode(nextMode);
+    setSidebarView("results");
     setQuery("");
     setError(null);
+    setDetailError(null);
+    setSelectedLine(null);
+    setSelectedStop(null);
+    setLineStops([]);
+    setRoute(null);
     void runSearch(nextMode, "");
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSidebarView("results");
     void runSearch(mode, query.trim());
   }
 
-  async function selectLine(line: Line) {
-    setSelectedLine(line);
-    setSelectedStop(null);
-    setDetailLoading(true);
+  async function loadMore() {
+    setLoadingMore(true);
     setError(null);
-    setSidebarOpen(false);
     try {
-      const [routeResult, stopsResult] = await Promise.allSettled([
-        api.getLineRoute(line.route_id),
-        api.getLineStops(line.route_id),
-      ]);
-      if (routeResult.status === "fulfilled") setRoute(routeResult.value.data);
-      else setRoute(null);
-      if (stopsResult.status === "fulfilled") setLineStops(stopsResult.value.data);
-      else setLineStops([]);
-      if (routeResult.status === "rejected" && stopsResult.status === "rejected") {
-        throw routeResult.reason;
+      if (mode === "lines") {
+        const response = await api.listLines(query.trim(), PAGE_SIZE, lines.length);
+        setLines((current) => [...current, ...response.data]);
+        setLineMeta(response.meta);
+      } else {
+        const response = await api.listStops(query.trim(), PAGE_SIZE, stops.length);
+        setStops((current) => [...current, ...response.data]);
+        setStopMeta(response.meta);
       }
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "Não foi possível abrir a linha.");
+      setError(caught instanceof ApiError ? caught.message : "Não foi possível carregar mais itens.");
     } finally {
-      setDetailLoading(false);
+      setLoadingMore(false);
     }
   }
 
+  function selectLine(line: Line) {
+    setSelectedLine(line);
+    setSelectedStop(null);
+    setSidebarView("itinerary");
+    setSidebarOpen(false);
+    setAvailableDirections([]);
+    setDirectionsLoading(true);
+    void api
+      .listLineTrips(line.route_id)
+      .then((response) => {
+        const directions = Array.from(
+          new Set(
+            response.data
+              .map((trip) => trip.direction_id)
+              .filter((value): value is DirectionId => value === "0" || value === "1"),
+          ),
+        );
+        setAvailableDirections(directions);
+      })
+      .catch(() => setAvailableDirections([]))
+      .finally(() => setDirectionsLoading(false));
+    void loadLineDetails(line, undefined);
+  }
+
+  async function loadLineDetails(line: Line, requestedDirection?: DirectionId) {
+    const requestId = ++detailRequest.current;
+    setRoute(null);
+    setLineStops([]);
+    setRouteLoading(true);
+    setStopsLoading(true);
+    setDetailError(null);
+
+    const routeRequest = api
+      .getLineRoute(line.route_id, requestedDirection)
+      .then((response) => {
+        if (detailRequest.current !== requestId) return;
+        setRoute(response.data);
+        if (response.data.direction_id === "0" || response.data.direction_id === "1") {
+          setDirection(response.data.direction_id);
+          setAvailableDirections((current) =>
+            current.includes(response.data.direction_id as DirectionId)
+              ? current
+              : [...current, response.data.direction_id as DirectionId],
+          );
+        }
+      })
+      .catch((caught) => {
+        if (detailRequest.current === requestId) setDetailError(messageFrom(caught));
+      })
+      .finally(() => {
+        if (detailRequest.current === requestId) setRouteLoading(false);
+      });
+
+    const stopsRequest = api
+      .getLineStops(line.route_id, requestedDirection)
+      .then((response) => {
+        if (detailRequest.current === requestId) setLineStops(response.data);
+      })
+      .catch((caught) => {
+        if (detailRequest.current === requestId) setDetailError(messageFrom(caught));
+      })
+      .finally(() => {
+        if (detailRequest.current === requestId) setStopsLoading(false);
+      });
+
+    await Promise.allSettled([routeRequest, stopsRequest]);
+  }
+
+  function changeDirection(nextDirection: DirectionId) {
+    if (!selectedLine || nextDirection === direction) return;
+    setDirection(nextDirection);
+    void loadLineDetails(selectedLine, nextDirection);
+  }
+
   function selectStop(stop: Stop) {
+    detailRequest.current += 1;
     setSelectedStop(stop);
     setSelectedLine(null);
     setLineStops([]);
@@ -116,7 +209,9 @@ export function TransitExplorer() {
     setSidebarOpen(false);
   }
 
-  const resultCount = mode === "lines" ? lines.length : stops.length;
+  const results = mode === "lines" ? lines : stops;
+  const meta = mode === "lines" ? lineMeta : stopMeta;
+  const canLoadMore = Boolean(meta && results.length < meta.total);
 
   return (
     <main className="app-shell">
@@ -132,11 +227,12 @@ export function TransitExplorer() {
           <span className={`status-dot ${apiStatus}`} />
           <span>
             {apiStatus === "online"
-              ? "GTFS conectado"
+              ? "Base GTFS conectada"
               : apiStatus === "offline"
                 ? "API indisponível"
                 : "Conectando à API"}
           </span>
+          {apiStatus === "online" && <em>dados programados</em>}
         </div>
         <button
           className="icon-button mobile-menu"
@@ -173,8 +269,16 @@ export function TransitExplorer() {
           </div>
 
           <div className="results-heading">
-            <span>{query ? "Resultados" : mode === "lines" ? "Linhas disponíveis" : "Pontos disponíveis"}</span>
-            {!loading && <strong>{resultCount}</strong>}
+            {sidebarView === "itinerary" ? (
+              <button className="back-to-results" onClick={() => setSidebarView("results")}>
+                <ArrowLeft size={15} /> Voltar às linhas
+              </button>
+            ) : (
+              <span>{query ? "Resultados" : mode === "lines" ? "Linhas disponíveis" : "Pontos disponíveis"}</span>
+            )}
+            {sidebarView === "results" && !loading && meta && (
+              <strong>{results.length} de {meta.total}</strong>
+            )}
           </div>
 
           {error && (
@@ -185,50 +289,112 @@ export function TransitExplorer() {
             </div>
           )}
 
-          <div className="results-list" aria-busy={loading}>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, index) => <div className="result-skeleton" key={index} />)
-            ) : mode === "lines" ? (
-              lines.map((line) => (
-                <button
-                  className={`result-row ${selectedLine?.route_id === line.route_id ? "selected" : ""}`}
-                  key={line.route_id}
-                  onClick={() => void selectLine(line)}
-                >
-                  <span className="line-badge" style={{ borderColor: safeColor(line.route_color) }}>
-                    {line.route_short_name || line.route_id}
-                  </span>
-                  <span className="result-copy">
-                    <strong>{line.route_long_name || "Itinerário sem nome"}</strong>
-                    <small>Linha {line.route_short_name || line.route_id}</small>
-                  </span>
-                  <ChevronRight size={17} />
-                </button>
-              ))
-            ) : (
-              stops.map((stop) => (
-                <button
-                  className={`result-row ${selectedStop?.stop_id === stop.stop_id ? "selected" : ""}`}
-                  key={stop.stop_id}
-                  onClick={() => selectStop(stop)}
-                >
-                  <span className="stop-icon"><MapPin size={18} /></span>
-                  <span className="result-copy">
-                    <strong>{stop.stop_name}</strong>
-                    <small>Ponto {stop.stop_code || stop.stop_id}</small>
-                  </span>
-                  <ChevronRight size={17} />
-                </button>
-              ))
-            )}
-            {!loading && resultCount === 0 && !error && (
-              <div className="empty-state">
-                <Search size={25} />
-                <strong>Nenhum resultado</strong>
-                <span>Revise o termo e tente novamente.</span>
+          {sidebarView === "itinerary" && selectedLine ? (
+            <div className="itinerary-view">
+              <div className="itinerary-line">
+                <span className="line-badge" style={{ borderColor: safeColor(selectedLine.route_color) }}>
+                  {selectedLine.route_short_name || selectedLine.route_id}
+                </span>
+                <div>
+                  <strong>{selectedLine.route_long_name || "Itinerário sem nome"}</strong>
+                  <small>
+                    {route
+                      ? `Trajeto ${route.shape_id}`
+                      : routeLoading
+                        ? "Carregando trajeto"
+                        : "Trajeto indisponível"}
+                  </small>
+                </div>
               </div>
-            )}
-          </div>
+              <div className="direction-control" aria-label="Sentido da linha">
+                <button
+                  className={direction === "0" ? "active" : ""}
+                  onClick={() => changeDirection("0")}
+                  disabled={directionsLoading || !availableDirections.includes("0")}
+                >
+                  Ida
+                </button>
+                <button
+                  className={direction === "1" ? "active" : ""}
+                  onClick={() => changeDirection("1")}
+                  disabled={directionsLoading || !availableDirections.includes("1")}
+                >
+                  Volta
+                </button>
+              </div>
+              <div className="itinerary-title">
+                <span>Pontos do trajeto</span>
+                <strong>{stopsLoading ? "..." : lineStops.length}</strong>
+              </div>
+              {detailError && <div className="detail-error"><AlertCircle size={16} />{detailError}</div>}
+              <div className="itinerary-stops" aria-busy={stopsLoading}>
+                {stopsLoading ? (
+                  <div className="itinerary-loading">
+                    <span className="spinner" />
+                    <strong>Buscando a sequência de pontos</strong>
+                    <small>O arquivo GTFS de horários é grande; o trajeto aparece antes.</small>
+                  </div>
+                ) : (
+                  lineStops.map((stop) => (
+                    <button key={`${stop.stop_id}-${stop.stop_sequence}`} onClick={() => selectStop(stop)}>
+                      <span>{stop.stop_sequence}</span>
+                      <div><strong>{stop.stop_name}</strong><small>Código {stop.stop_code || stop.stop_id}</small></div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="results-list" aria-busy={loading}>
+              {loading ? (
+                Array.from({ length: 5 }).map((_, index) => <div className="result-skeleton" key={index} />)
+              ) : mode === "lines" ? (
+                lines.map((line) => (
+                  <button
+                    className={`result-row ${selectedLine?.route_id === line.route_id ? "selected" : ""}`}
+                    key={line.route_id}
+                    onClick={() => selectLine(line)}
+                  >
+                    <span className="line-badge" style={{ borderColor: safeColor(line.route_color) }}>
+                      {line.route_short_name || line.route_id}
+                    </span>
+                    <span className="result-copy">
+                      <strong>{line.route_long_name || "Itinerário sem nome"}</strong>
+                      <small>Linha {line.route_short_name || line.route_id}</small>
+                    </span>
+                    <ChevronRight size={17} />
+                  </button>
+                ))
+              ) : (
+                stops.map((stop) => (
+                  <button
+                    className={`result-row ${selectedStop?.stop_id === stop.stop_id ? "selected" : ""}`}
+                    key={stop.stop_id}
+                    onClick={() => selectStop(stop)}
+                  >
+                    <span className="stop-icon"><MapPin size={18} /></span>
+                    <span className="result-copy">
+                      <strong>{stop.stop_name}</strong>
+                      <small>Ponto {stop.stop_code || stop.stop_id}</small>
+                    </span>
+                    <ChevronRight size={17} />
+                  </button>
+                ))
+              )}
+              {!loading && results.length === 0 && !error && (
+                <div className="empty-state">
+                  <Search size={25} />
+                  <strong>Nenhum resultado</strong>
+                  <span>Revise o termo e tente novamente.</span>
+                </div>
+              )}
+              {!loading && canLoadMore && (
+                <button className="load-more" onClick={() => void loadMore()} disabled={loadingMore}>
+                  {loadingMore ? "Carregando..." : `Carregar mais ${mode === "lines" ? "linhas" : "pontos"}`}
+                </button>
+              )}
+            </div>
+          )}
         </aside>
 
         <div className="map-region">
@@ -239,14 +405,20 @@ export function TransitExplorer() {
             vehicles={vehicles}
             showRoute={showRoute}
             showStops={showStops}
-            showVehicles={showVehicles}
+            showVehicles={false}
           />
 
           <div className="map-toolbar" aria-label="Camadas do mapa">
             <label><input type="checkbox" checked={showRoute} onChange={(event) => setShowRoute(event.target.checked)} /><Route size={16} />Trajeto</label>
             <label><input type="checkbox" checked={showStops} onChange={(event) => setShowStops(event.target.checked)} /><MapPin size={16} />Pontos</label>
-            <label><input type="checkbox" checked={showVehicles} onChange={(event) => setShowVehicles(event.target.checked)} /><BusFront size={16} />Veículos <span>{vehicles.length}</span></label>
+            <label className="unavailable" title="Aguardando integração dos dados em tempo real">
+              <input type="checkbox" disabled /><BusFront size={16} />Veículos <em>em breve</em>
+            </label>
           </div>
+
+          {routeLoading && !route && (
+            <div className="map-progress"><span className="spinner" />Carregando trajeto da linha...</div>
+          )}
 
           {(selectedLine || selectedStop) && (
             <section className="selection-panel" aria-live="polite">
@@ -259,9 +431,9 @@ export function TransitExplorer() {
                     <p>{selectedLine.route_long_name || "Itinerário sem nome"}</p>
                   </div>
                   <div className="selection-stats">
-                    <span><MapPin size={16} /><strong>{detailLoading ? "..." : lineStops.length}</strong> pontos</span>
-                    <span><BusFront size={16} /><strong>{vehicles.length}</strong> veículos</span>
-                    <span><Clock3 size={16} /><strong>{predictions.length}</strong> previsões</span>
+                    <span><MapPin size={16} /><strong>{stopsLoading ? "..." : lineStops.length}</strong> pontos</span>
+                    <span className="pending"><BusFront size={16} /><strong>--</strong> tempo real</span>
+                    <span className="pending"><Clock3 size={16} /><strong>--</strong> previsões</span>
                   </div>
                 </>
               ) : selectedStop ? (
@@ -273,7 +445,7 @@ export function TransitExplorer() {
                   </div>
                   <div className="selection-stats compact">
                     <span><LocateFixed size={16} />{selectedStop.stop_lat.toFixed(5)}, {selectedStop.stop_lon.toFixed(5)}</span>
-                    <span><Clock3 size={16} /><strong>{predictions.length}</strong> previsões</span>
+                    <span className="pending"><Clock3 size={16} /><strong>--</strong> previsões</span>
                   </div>
                 </>
               ) : null}
@@ -283,6 +455,10 @@ export function TransitExplorer() {
       </section>
     </main>
   );
+}
+
+function messageFrom(caught: unknown): string {
+  return caught instanceof ApiError ? caught.message : "Não foi possível carregar os detalhes da linha.";
 }
 
 function safeColor(value: string | null): string {

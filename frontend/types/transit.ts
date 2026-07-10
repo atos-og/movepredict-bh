@@ -22,6 +22,15 @@ export type LineStop = Stop & {
   departure_time: string | null;
 };
 
+export type Trip = {
+  route_id: string;
+  service_id: string | null;
+  trip_id: string;
+  trip_headsign: string | null;
+  direction_id: string | null;
+  shape_id: string | null;
+};
+
 export type LineRoute = {
   route_id: string;
   trip_id: string;
