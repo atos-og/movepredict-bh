@@ -1,35 +1,40 @@
 # Backend
 
-Backend do projeto feito com Python e FastAPI.
+API FastAPI do MovePredict BH. A aplicação lê GTFS estático por meio de `GtfsService`, isolando o transporte HTTP da fonte de dados.
 
-## Como rodar
-
-Ative o ambiente virtual:
+## Instalação
 
 ```powershell
+python -m venv .venv
 .venv\Scripts\activate
-```
-
-Instale as dependências:
-
-```powershell
-pip install -r requirements.txt
-```
-
-Rode o servidor:
-
-```powershell
+pip install -r requirements-dev.txt
+Copy-Item .env.example .env
 uvicorn app.main:app --reload
 ```
 
-Acesse no navegador:
+## Configuração
 
-```txt
-http://127.0.0.1:8000
+| Variável | Padrão | Uso |
+| --- | --- | --- |
+| `MOVEPREDICT_ENVIRONMENT` | `development` | Identifica o ambiente. |
+| `MOVEPREDICT_GTFS_DATA_DIR` | `../data-exploration/data/raw` | Diretório dos arquivos GTFS extraídos. |
+| `MOVEPREDICT_CORS_ORIGINS` | URLs locais do frontend | Origens permitidas, separadas por vírgula. |
+
+## Estrutura
+
+```text
+app/main.py                 criação da aplicação e handlers globais
+app/routers/                endpoints HTTP
+app/schemas/                contratos Pydantic
+app/services/gtfs_service.py leitura e consulta do GTFS
+app/services/provider_contracts.py interfaces futuras
+tests/                      testes isolados com GTFS mínimo
 ```
 
-Documentação da API:
+## Testes
 
-```txt
-http://127.0.0.1:8000/docs
+```powershell
+pytest
+ruff check app tests
+ruff format --check app tests
 ```

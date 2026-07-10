@@ -221,3 +221,15 @@ backend_venv/
 
 # Project data files
 data-exploration/data/
+
+# Frontend
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Local environment files (examples remain versioned)
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

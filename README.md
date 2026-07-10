@@ -1,51 +1,97 @@
 # MovePredict BH
 
-O **MovePredict BH** é uma plataforma em desenvolvimento para monitorar ônibus de Belo Horizonte em tempo real, salvar histórico de posições e estimar a chegada dos veículos nos pontos usando dados públicos.
+O MovePredict BH é uma aplicação para consultar linhas, pontos e trajetos do transporte coletivo de Belo Horizonte. A base atual usa GTFS estático da PBH e já deixa contratos definidos para posições de veículos e previsões de chegada.
 
-## Objetivo
+## Estado atual
 
-Criar um produto útil para usuários do transporte público e, ao mesmo tempo, aprender na prática sobre desenvolvimento web, backend, dados, banco de dados, geolocalização, deploy e documentação.
+- API FastAPI modular com linhas, pontos, trajetos e viagens.
+- Filtros, paginação, CORS, respostas tipadas e erros padronizados.
+- Frontend Next.js com busca por linha/ponto e mapa Leaflet responsivo.
+- Testes automatizados do backend e validações de frontend.
+- Pipeline de CI e imagens Docker prontas para avaliação.
+- Sem publicação, credenciais ou infraestrutura externa provisionada.
 
-## Stack planejada
+## Responsabilidades
 
-- Frontend: Next.js + TypeScript
-- Backend: Python + FastAPI
-- Banco de dados: PostgreSQL
-- Geodados: PostGIS
-- Dados e análise: Python + Pandas
-- Modelo inicial: Scikit-learn
-- Mapas: Leaflet
-- Deploy frontend: Vercel
-- Deploy backend: Render, Railway ou Fly.io
-- Banco cloud: Supabase, Neon ou Railway
-- Organização: GitHub + GitHub Projects
-- Documentação: Markdown
+Atos mantém backend, frontend, integração, testes, CI, documentação e preparação de deploy.
 
-## Estrutura inicial
+Vinicius mantém exploração e obtenção dos dados em tempo real, PostgreSQL/PostGIS, histórico de posições e previsão de chegada. Essas partes não são implementadas aqui; a integração futura está definida pelos contratos `VehiclePositionProvider`, `ArrivalPredictionProvider`, `VehiclePosition` e `ArrivalPrediction`.
 
-```txt
-movepredict-bh/
-├── backend/
-├── frontend/
-├── data-exploration/
-├── docs/
-├── infra/
-├── README.md
-├── PROJECT_BRIEF.md
-└── LEARNING_LOG.md
+## Estrutura
+
+```text
+backend/          API FastAPI, schemas, services e testes
+frontend/         Aplicação Next.js, TypeScript e Leaflet
+data-exploration/ Scripts e dados locais da frente de dados
+docs/             API, arquitetura, decisões, roadmap e tarefas
+.github/          GitHub Actions
+compose.yaml      Execução local em contêineres
 ```
 
-## Fases do projeto
+## Desenvolvimento local
 
-1. Exploração dos dados públicos de transporte.
-2. Criação da API com FastAPI.
-3. Integração com banco PostgreSQL.
-4. Salvamento de histórico dos ônibus.
-5. Primeira previsão de chegada.
-6. Frontend com mapa e busca por linha.
-7. Dashboard e rankings.
-8. Deploy e documentação final.
+### API
 
-## Status
+```powershell
+cd backend
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements-dev.txt
+uvicorn app.main:app --reload
+```
 
-Projeto iniciado. Atualmente estamos na fase de estruturação e exploração dos dados.
+O GTFS deve estar extraído em `data-exploration/data/raw`. A documentação interativa fica em `http://localhost:8000/docs`.
+
+Para validar o ambiente e inspecionar rapidamente os arquivos GTFS:
+
+```powershell
+python data-exploration/scripts/check_environment.py
+python data-exploration/scripts/inspect_routes.py
+python data-exploration/scripts/inspect_stops.py
+```
+
+### Frontend
+
+Requer Node.js 22 e pnpm 11.
+
+```powershell
+cd frontend
+Copy-Item .env.example .env.local
+pnpm install
+pnpm dev
+```
+
+A aplicação fica em `http://localhost:3000` e espera a API em `http://localhost:8000`.
+
+## Validação
+
+```powershell
+cd backend
+pytest
+ruff check app tests
+ruff format --check app tests
+
+cd ../frontend
+pnpm lint
+pnpm typecheck
+pnpm build
+```
+
+## Contêineres
+
+Com os dados GTFS locais disponíveis:
+
+```powershell
+docker compose up --build
+```
+
+Nenhuma configuração deste repositório publica serviços automaticamente. Consulte [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) antes de escolher um provedor.
+
+## Documentação
+
+- [API](docs/API.md)
+- [Arquitetura](docs/ARCHITECTURE.md)
+- [Deploy](docs/DEPLOYMENT.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Tarefas](docs/TASKS.md)
+- [Decisões técnicas](docs/DECISIONS.md)
