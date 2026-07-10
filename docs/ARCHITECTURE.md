@@ -1,16 +1,40 @@
-# Arquitetura — MovePredict BH
+# Arquitetura - MovePredict BH
 
-## Visão inicial
+## Visão atual
 
-```txt
-Dados públicos PBH
-        ↓
-Exploração com Python
-        ↓
-Backend FastAPI
-        ↓
-PostgreSQL
-        ↓
-Frontend Next.js
-        ↓
-Usuário
+```text
+Arquivos GTFS da PBH
+        |
+        v
+GtfsService (adaptador local)
+        |
+        v
+Services -> Schemas Pydantic -> Routers FastAPI
+        |
+        v
+Cliente HTTP tipado -> Next.js -> Leaflet
+```
+
+Routers conhecem HTTP e validação de parâmetros. Services conhecem casos de uso e fontes de dados. Schemas formam o contrato compartilhado. `main.py` cuida de CORS, request ID e erros globais.
+
+## Fronteira com a frente de dados
+
+```text
+Coleta em tempo real -----\
+PostgreSQL/PostGIS --------> implementação futura dos Protocols -> API -> Frontend
+Modelo de previsão -------/
+```
+
+Atos mantém a aplicação e a integração. Vinicius implementará coleta, histórico e previsão. A fronteira é definida por:
+
+- `VehiclePositionProvider.list_current_positions(route_id)`
+- `ArrivalPredictionProvider.predict_arrivals(stop_id, route_id, at)`
+- schemas `VehiclePosition` e `ArrivalPrediction`
+
+Isso permite trocar o adaptador GTFS local por consultas ao PostgreSQL sem alterar os routers ou o mapa.
+
+## Decisões de operação
+
+- Dados GTFS não entram na imagem Docker; são montados como volume ou fornecidos por armazenamento externo.
+- A URL da API do frontend é definida no build por ser uma variável pública do Next.js.
+- O health check atual é de liveness. Readiness de banco será adicionada com o PostGIS.

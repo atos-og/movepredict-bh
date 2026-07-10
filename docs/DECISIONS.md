@@ -17,3 +17,19 @@ Decidimos não começar pelo frontend.
 ### Motivo
 
 Antes de criar telas, precisamos entender quais dados existem, como acessá-los e se eles são suficientes para construir o produto.
+
+## 003 - Isolar fontes de dados atrás de services
+
+Routers FastAPI não acessam arquivos, banco ou provedores diretamente. A implementação atual usa `GtfsService`; fontes futuras implementarão contratos equivalentes.
+
+### Motivo
+
+Atos pode evoluir API e frontend enquanto Vinicius desenvolve coleta, PostGIS e previsão, reduzindo conflitos e preservando o contrato público.
+
+## 004 - Padronizar envelopes HTTP
+
+Respostas individuais usam `data`, listas usam `data` e `meta`, e falhas usam `error` com código, mensagem e request ID.
+
+### Motivo
+
+O frontend e integrações futuras conseguem tratar paginação e falhas sem conhecer exceções internas do backend.
