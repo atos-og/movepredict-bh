@@ -8,6 +8,7 @@ import type {
   Stop,
   Trip,
 } from "@/types/transit";
+import type { GeoBounds } from "@/lib/geo";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
@@ -65,5 +66,15 @@ export const api = {
     request<PageResponse<Trip>>(`/lines/${routeId}/trips${params({ limit: 200 })}`),
   listStops: (q = "", limit = 20, offset = 0) =>
     request<PageResponse<Stop>>(`/stops${params({ q: q || undefined, limit, offset })}`),
+  listStopsInBounds: (bounds: GeoBounds, limit = 100) =>
+    request<PageResponse<Stop>>(
+      `/stops${params({
+        min_lat: bounds.minLat,
+        max_lat: bounds.maxLat,
+        min_lon: bounds.minLon,
+        max_lon: bounds.maxLon,
+        limit,
+      })}`,
+    ),
   getStop: (stopId: string) => request<DataResponse<Stop>>(`/stops/${stopId}`),
 };
