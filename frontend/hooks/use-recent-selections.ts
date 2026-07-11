@@ -5,7 +5,7 @@ import type { RecentSelection } from "@/types/mobility";
 
 const STORAGE_KEY = "movepredict:recent-selections";
 
-export function useRecentSelections(limit = 4) {
+export function useRecentSelections(limit = 3) {
   const [items, setItems] = useState<RecentSelection[]>([]);
 
   useEffect(() => {

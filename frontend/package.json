@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "test": "node --test lib/geo.test.ts",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
@@ -20,6 +22,7 @@
     "react-leaflet": "5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/leaflet": "1.9.21",
     "@types/node": "26.1.1",
     "@types/react": "19.2.17",

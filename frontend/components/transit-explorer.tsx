@@ -14,10 +14,15 @@ import {
   Navigation,
   Route,
   Search,
+  Star,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LocationPermissionCard } from "@/components/location/location-permission-card";
 import { LocationStatus } from "@/components/location/location-status";
+import { JourneyOptionCard } from "@/components/journey/journey-option-card";
+import { JourneyTimeline } from "@/components/journey/journey-timeline";
+import { MobileBottomNavigation, type MobileSection } from "@/components/navigation/mobile-bottom-navigation";
 import { DestinationSearch } from "@/components/search/destination-search";
 import { TransitSuggestions } from "@/components/search/transit-suggestions";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -25,10 +30,13 @@ import { Button } from "@/components/ui/button";
 import { FeedbackState } from "@/components/ui/feedback-state";
 import { SearchField } from "@/components/ui/search-field";
 import { useGeolocation } from "@/hooks/use-geolocation";
+import { useFavorites } from "@/hooks/use-favorites";
 import { useRecentSelections } from "@/hooks/use-recent-selections";
+import { geocodingProvider } from "@/lib/adapters/geocoding";
+import { journeyPlannerProvider } from "@/lib/adapters/journey-planner";
 import { api, ApiError } from "@/lib/api";
 import { boundsAround, distanceInMeters, formatDistance, nearestStops, stopCoordinates } from "@/lib/geo";
-import type { RecentSelection } from "@/types/mobility";
+import type { GeocodedDestination, JourneyPlan, RecentSelection } from "@/types/mobility";
 import type { VehiclePosition } from "@/types/realtime";
 import type { Line, LineRoute, LineStop, PageMeta, Stop } from "@/types/transit";
 
@@ -42,7 +50,7 @@ const SUGGESTION_LIMIT = 5;
 const vehicles: VehiclePosition[] = [];
 
 type SearchMode = "lines" | "stops";
-type PanelView = "home" | "browse" | "line" | "stop";
+type PanelView = "home" | "location" | "browse" | "line" | "stop" | "route-options" | "route-details" | "journey-active" | "favorites" | "more";
 type DetailOrigin = "home" | "browse" | "line";
 type ApiStatus = "connecting" | "online" | "offline";
 type DirectionId = "0" | "1";
@@ -60,6 +68,12 @@ export function TransitExplorer() {
   const [stopMeta, setStopMeta] = useState<PageMeta | null>(null);
   const [suggestedLines, setSuggestedLines] = useState<Line[]>([]);
   const [suggestedStops, setSuggestedStops] = useState<Stop[]>([]);
+  const [suggestedDestinations, setSuggestedDestinations] = useState<GeocodedDestination[]>([]);
+  const [geocodingAvailable, setGeocodingAvailable] = useState(false);
+  const [selectedDestination, setSelectedDestination] = useState<GeocodedDestination | null>(null);
+  const [journeyPlans, setJourneyPlans] = useState<JourneyPlan[]>([]);
+  const [selectedJourney, setSelectedJourney] = useState<JourneyPlan | null>(null);
+  const [journeyStatus, setJourneyStatus] = useState<"idle" | "loading" | "available" | "unavailable">("idle");
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [selectedLine, setSelectedLine] = useState<Line | null>(null);
@@ -85,6 +99,7 @@ export function TransitExplorer() {
   const detailRequest = useRef(0);
   const suggestionRequest = useRef(0);
   const geolocation = useGeolocation();
+  const favorites = useFavorites();
   const recentSelections = useRecentSelections();
 
   const runBrowse = useCallback(async (searchMode: SearchMode, searchQuery: string) => {
@@ -116,14 +131,18 @@ export function TransitExplorer() {
     setSuggestionsLoading(true);
     setSuggestionError(null);
 
-    const [lineResult, stopResult] = await Promise.allSettled([
-      api.listLines(normalized, SUGGESTION_LIMIT),
+    const [destinationResult, stopResult, lineResult] = await Promise.allSettled([
+      geocodingProvider.search(normalized),
       api.listStops(normalized, SUGGESTION_LIMIT),
+      api.listLines(normalized, SUGGESTION_LIMIT),
     ]);
     if (suggestionRequest.current !== requestId) return;
 
     const nextLines = lineResult.status === "fulfilled" ? lineResult.value.data : [];
     const nextStops = stopResult.status === "fulfilled" ? stopResult.value.data : [];
+    const nextDestinations = destinationResult.status === "fulfilled" && destinationResult.value.status === "available" ? destinationResult.value.data : [];
+    setSuggestedDestinations(nextDestinations);
+    setGeocodingAvailable(destinationResult.status === "fulfilled" && destinationResult.value.status === "available");
     setSuggestedLines(nextLines);
     setSuggestedStops(nextStops);
     setSuggestionsLoading(false);
@@ -176,6 +195,15 @@ export function TransitExplorer() {
     };
   }, [geolocation.coordinates]);
 
+  useEffect(() => {
+    if (panelView !== "location" || geolocation.status !== "granted") return;
+    const showReadyHome = window.setTimeout(() => {
+      setPanelView("home");
+      setPanelOpen(true);
+    }, 350);
+    return () => window.clearTimeout(showReadyHome);
+  }, [geolocation.status, panelView]);
+
   function openHome() {
     detailRequest.current += 1;
     setPanelView("home");
@@ -206,6 +234,21 @@ export function TransitExplorer() {
     void runBrowse(nextMode, "");
   }
 
+  function openLocationExplanation() {
+    setPanelView("location");
+    setPanelOpen(true);
+  }
+
+  function navigateMobile(section: MobileSection) {
+    if (section === "home") resetHome();
+    else if (section === "lines") openBrowse("lines");
+    else if (section === "stops") openBrowse("stops");
+    else {
+      setPanelView(section);
+      setPanelOpen(true);
+    }
+  }
+
   function changeMode(nextMode: SearchMode) {
     if (nextMode === mode && panelView === "browse") return;
     openBrowse(nextMode);
@@ -229,9 +272,34 @@ export function TransitExplorer() {
       suggestionRequest.current += 1;
       setSuggestedLines([]);
       setSuggestedStops([]);
+      setSuggestedDestinations([]);
       setSuggestionsLoading(false);
       setSuggestionError(null);
     }
+  }
+
+  function focusFirstSuggestion() {
+    document.querySelector<HTMLButtonElement>("#destination-suggestions .suggestion-group button")?.focus();
+  }
+
+  async function selectDestination(destination: GeocodedDestination) {
+    setSelectedDestination(destination);
+    setPanelView("route-options");
+    setPanelOpen(true);
+    setJourneyPlans([]);
+    if (!geolocation.coordinates) {
+      setJourneyStatus("unavailable");
+      return;
+    }
+    setJourneyStatus("loading");
+    const result = await journeyPlannerProvider.plan(geolocation.coordinates, destination);
+    setJourneyPlans(result.plans);
+    setJourneyStatus(result.status);
+  }
+
+  function showJourneyDetails(plan: JourneyPlan) {
+    setSelectedJourney(plan);
+    setPanelView("route-details");
   }
 
   async function loadMore() {
@@ -348,6 +416,14 @@ export function TransitExplorer() {
     else selectStop(selection.value, "home");
   }
 
+  function toggleLineFavorite() {
+    if (selectedLine) favorites.toggle(toRecentLine(selectedLine));
+  }
+
+  function toggleStopFavorite() {
+    if (selectedStop) favorites.toggle(toRecentStop(selectedStop));
+  }
+
   function backFromDetail() {
     if (panelView === "stop" && detailOrigin === "line" && selectedLine) {
       setSelectedStop(null);
@@ -370,6 +446,8 @@ export function TransitExplorer() {
   const canLoadMore = Boolean(meta && results.length < meta.total);
   const hasDestinationQuery = destinationQuery.trim().length >= 2;
   const location = geolocation.coordinates;
+  const activeMobileSection: MobileSection =
+    panelView === "browse" ? mode : panelView === "favorites" || panelView === "more" ? panelView : "home";
 
   return (
     <main className="app-shell">
@@ -378,11 +456,7 @@ export function TransitExplorer() {
           <span className="brand-mark" aria-hidden="true"><BusFront size={23} /></span>
           <span><strong>MovePredict BH</strong><small>Mobilidade em Belo Horizonte</small></span>
         </button>
-        <div className="topbar-status">
-          <span className={`status-dot ${apiStatus}`} />
-          <span>{apiStatus === "online" ? "Base oficial conectada" : apiStatus === "offline" ? "API indisponível" : "Conectando"}</span>
-          {apiStatus === "online" && <em>GTFS programado</em>}
-        </div>
+        {apiStatus === "offline" && <span className="topbar-alert"><AlertCircle size={15} /> Serviço indisponível</span>}
         <Button
           className="icon-button mobile-menu"
           variant="icon"
@@ -416,10 +490,12 @@ export function TransitExplorer() {
                 <Navigation size={18} />
               </Button>
             )}
-            <div className="map-toolbar" aria-label="Camadas do mapa">
-              <label title="Mostrar trajeto"><input type="checkbox" checked={showRoute} onChange={(event) => setShowRoute(event.target.checked)} /><Route size={16} /><span>Trajeto</span></label>
-              <label title="Mostrar pontos"><input type="checkbox" checked={showStops} onChange={(event) => setShowStops(event.target.checked)} /><MapPin size={16} /><span>Pontos</span></label>
-            </div>
+            {panelView === "line" && (
+              <div className="map-toolbar" aria-label="Camadas do mapa">
+                <label title="Mostrar trajeto"><input type="checkbox" checked={showRoute} onChange={(event) => setShowRoute(event.target.checked)} /><Route size={16} /><span>Trajeto</span></label>
+                <label title="Mostrar pontos"><input type="checkbox" checked={showStops} onChange={(event) => setShowStops(event.target.checked)} /><MapPin size={16} /><span>Pontos</span></label>
+              </div>
+            )}
           </div>
 
           {routeLoading && !route && <div className="map-progress"><span className="spinner" />Carregando trajeto...</div>}
@@ -437,6 +513,7 @@ export function TransitExplorer() {
                   onChange={changeDestinationQuery}
                   onSubmit={submitDestination}
                   onClear={() => changeDestinationQuery("")}
+                  onNavigateResults={focusFirstSuggestion}
                 />
               </div>
 
@@ -444,17 +521,28 @@ export function TransitExplorer() {
                 <div className="home-scroll">
                   <TransitSuggestions
                     query={destinationQuery.trim()}
+                    destinations={suggestedDestinations}
+                    geocodingAvailable={geocodingAvailable}
                     lines={suggestedLines}
                     stops={suggestedStops}
                     loading={suggestionsLoading}
                     error={suggestionError}
+                    onDestinationSelect={selectDestination}
                     onLineSelect={(line) => selectLine(line, "home")}
                     onStopSelect={(stop) => selectStop(stop, "home")}
                   />
                 </div>
               ) : (
                 <div className="home-scroll home-content">
-                  <LocationStatus status={geolocation.status} onRetry={geolocation.requestLocation} />
+                  {geolocation.status === "idle" ? (
+                    <button className="location-cta" onClick={openLocationExplanation}>
+                      <span><LocateFixed size={18} /></span>
+                      <span><strong>Usar minha localização</strong><small>Encontre o ponto mais próximo</small></span>
+                      <ChevronRight size={17} />
+                    </button>
+                  ) : (
+                    <LocationStatus status={geolocation.status} onRetry={openLocationExplanation} />
+                  )}
 
                   {geolocation.status === "granted" && (
                     <section className="nearby-section">
@@ -472,11 +560,9 @@ export function TransitExplorer() {
                   )}
 
                   <section className="explore-section">
-                    <div className="section-heading"><span>Explorar a rede</span></div>
-                    <div className="explore-actions">
-                      <Button variant="secondary" onClick={() => openBrowse("lines")}><Route size={18} />Linhas</Button>
-                      <Button variant="secondary" onClick={() => openBrowse("stops")}><MapPin size={18} />Pontos</Button>
-                    </div>
+                    <button className="explore-link" onClick={() => openBrowse("lines")}>
+                      Explorar linhas e pontos <ChevronRight size={16} />
+                    </button>
                   </section>
 
                   {recentSelections.items.length > 0 && (
@@ -493,6 +579,17 @@ export function TransitExplorer() {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {panelView === "location" && (
+            <div className="location-view">
+              <PanelHeader title="Sua localização" onBack={openHome} />
+              <LocationPermissionCard
+                status={geolocation.status}
+                onRequest={geolocation.requestLocation}
+                onSkip={openHome}
+              />
             </div>
           )}
 
@@ -532,17 +629,23 @@ export function TransitExplorer() {
               <div className="line-summary">
                 <span className="line-badge large" style={{ borderColor: safeColor(selectedLine.route_color) }}>{selectedLine.route_short_name || selectedLine.route_id}</span>
                 <span><strong>{selectedLine.route_long_name || "Itinerário sem nome"}</strong><small>{route ? "Trajeto oficial carregado" : routeLoading ? "Carregando trajeto" : "Trajeto indisponível"}</small></span>
+                <Button className="favorite-button" variant="icon" onClick={toggleLineFavorite} aria-label={favorites.isFavorite(toRecentLine(selectedLine)) ? "Remover linha dos favoritos" : "Favoritar linha"} title="Favoritar linha">
+                  <Star size={18} fill={favorites.isFavorite(toRecentLine(selectedLine)) ? "currentColor" : "none"} />
+                </Button>
               </div>
               <div className="direction-control" aria-label="Sentido da linha">
                 <button className={direction === "0" ? "active" : ""} onClick={() => changeDirection("0")} disabled={directionsLoading || !availableDirections.includes("0")}>Ida</button>
                 <button className={direction === "1" ? "active" : ""} onClick={() => changeDirection("1")} disabled={directionsLoading || !availableDirections.includes("1")}>Volta</button>
               </div>
-              <div className="detail-capability"><Clock3 size={16} /><span><strong>Horários em tempo real ainda não disponíveis</strong><small>O mapa exibe o trajeto e os pontos do GTFS programado.</small></span></div>
+              <div className="detail-capability"><Clock3 size={16} /><span><strong>Horários ao vivo ainda não estão disponíveis</strong><small>Exibindo o trajeto e a programação oficial do GTFS.</small></span></div>
+              {!stopsLoading && lineStops.length > 0 && (
+                <div className="line-route-summary"><span><small>Origem</small><strong>{lineStops[0].stop_name}</strong></span><ChevronRight size={15} /><span><small>Destino</small><strong>{lineStops.at(-1)?.stop_name}</strong></span></div>
+              )}
               <div className="itinerary-title"><span>Pontos do trajeto</span><strong>{stopsLoading ? "..." : lineStops.length}</strong></div>
               {detailError && <div className="detail-error"><AlertCircle size={16} />{detailError}</div>}
               <div className="itinerary-stops" aria-busy={stopsLoading}>
-                {stopsLoading ? <div className="itinerary-loading"><span className="spinner" /><strong>Buscando a sequência de pontos</strong><small>O trajeto aparece primeiro enquanto a base de horários é consultada.</small></div> : lineStops.map((stop) => (
-                  <button key={`${stop.stop_id}-${stop.stop_sequence}`} onClick={() => selectStop(stop, "line")}><span>{stop.stop_sequence}</span><div><strong>{stop.stop_name}</strong><small>Código {stop.stop_code || stop.stop_id}</small></div></button>
+                {stopsLoading ? <ItinerarySkeleton /> : lineStops.map((stop) => (
+                  <button key={`${stop.stop_id}-${stop.stop_sequence}`} onClick={() => selectStop(stop, "line")}><span>{stop.stop_sequence}</span><div><strong>{stop.stop_name}</strong><small>{scheduledStopTime(stop) ? `Programado ${scheduledStopTime(stop)}` : `Código ${stop.stop_code || stop.stop_id}`}</small></div></button>
                 ))}
               </div>
             </div>
@@ -551,7 +654,7 @@ export function TransitExplorer() {
           {panelView === "stop" && selectedStop && (
             <div className="stop-view">
               <PanelHeader title="Detalhes do ponto" onBack={backFromDetail} />
-              <div className="stop-summary"><span className="stop-icon large"><MapPin size={22} /></span><span><strong>{selectedStop.stop_name}</strong><small>Ponto {selectedStop.stop_code || selectedStop.stop_id}</small></span></div>
+              <div className="stop-summary"><span className="stop-icon large"><MapPin size={22} /></span><span><strong>{selectedStop.stop_name}</strong><small>Ponto {selectedStop.stop_code || selectedStop.stop_id}</small></span><Button className="favorite-button" variant="icon" onClick={toggleStopFavorite} aria-label={favorites.isFavorite(toRecentStop(selectedStop)) ? "Remover ponto dos favoritos" : "Favoritar ponto"} title="Favoritar ponto"><Star size={18} fill={favorites.isFavorite(toRecentStop(selectedStop)) ? "currentColor" : "none"} /></Button></div>
               {location && (
                 <div className="distance-summary"><LocateFixed size={18} /><span><strong>{formatDistance(distanceInMeters(location, stopCoordinates(selectedStop)))}</strong><small>distância em linha reta da sua localização</small></span></div>
               )}
@@ -566,7 +669,55 @@ export function TransitExplorer() {
               </section>
             </div>
           )}
+
+          {panelView === "route-options" && selectedDestination && (
+            <div className="journey-view">
+              <PanelHeader title="Opções de rota" onBack={openHome} />
+              <div className="journey-destination"><MapPin size={18} /><span><small>Destino</small><strong>{selectedDestination.label}</strong></span></div>
+              {journeyStatus === "loading" && <div className="journey-loading"><span className="spinner" /><strong>Buscando a melhor opção...</strong></div>}
+              {journeyStatus === "unavailable" && (
+                <section className="integration-placeholder prominent"><Navigation size={22} /><div><strong>Planejamento de viagem ainda não conectado</strong><p>Para calcular caminhada, melhor linha, baldeações e horários, o MovePredict precisa de geocodificação e um motor de roteamento. Nenhuma rota foi simulada.</p></div></section>
+              )}
+              {journeyStatus === "available" && <div className="journey-options">{journeyPlans.map((plan, index) => <JourneyOptionCard key={plan.id} plan={plan} primary={index === 0} onSelect={() => showJourneyDetails(plan)} />)}</div>}
+            </div>
+          )}
+
+          {panelView === "route-details" && selectedJourney && (
+            <div className="journey-view">
+              <PanelHeader title={`${selectedJourney.totalDurationMinutes} min até o destino`} onBack={() => setPanelView("route-options")} />
+              <JourneyTimeline steps={selectedJourney.steps} />
+              <div className="sticky-panel-action"><Button onClick={() => setPanelView("journey-active")}><Navigation size={18} />Iniciar viagem</Button></div>
+            </div>
+          )}
+
+          {panelView === "journey-active" && selectedJourney && (
+            <div className="active-journey-view">
+              <header><small>O que fazer agora</small><strong>{selectedJourney.steps[0]?.title || "Siga a rota"}</strong></header>
+              <div className="active-instruction"><Navigation size={24} /><p>{selectedJourney.steps[0]?.description || "Acompanhe as instruções no mapa."}</p></div>
+              <div className="journey-progress"><span style={{ width: "8%" }} /></div>
+              <Button onClick={() => setPanelOpen(false)}>Acompanhar no mapa</Button>
+            </div>
+          )}
+
+          {panelView === "favorites" && (
+            <div className="simple-view">
+              <PanelHeader title="Favoritos" onBack={openHome} />
+              {favorites.items.length === 0 ? (
+                <FeedbackState icon={<Star size={23} />} title="Nenhum favorito ainda" description="Salve linhas e pontos pelos detalhes para encontrá-los rapidamente aqui." />
+              ) : (
+                <div className="results-list favorites-list">{favorites.items.map((item) => item.kind === "line" ? <LineResult key={`line-${item.id}`} line={item.value} onSelect={() => selectRecent(item)} /> : <StopResult key={`stop-${item.id}`} stop={item.value} onSelect={() => selectRecent(item)} />)}</div>
+              )}
+            </div>
+          )}
+
+          {panelView === "more" && (
+            <div className="simple-view">
+              <PanelHeader title="Mais" onBack={openHome} />
+              <section className="about-data"><BusFront size={22} /><div><strong>MovePredict BH</strong><p>Mobilidade para Belo Horizonte com dados oficiais programados da PBH.</p></div></section>
+            </div>
+          )}
         </BottomSheet>
+        <MobileBottomNavigation active={activeMobileSection} onSelect={navigateMobile} />
       </section>
     </main>
   );
@@ -582,6 +733,15 @@ function LineResult({ line, onSelect }: { line: Line; onSelect: () => void }) {
 
 function StopResult({ stop, onSelect }: { stop: Stop; onSelect: () => void }) {
   return <button className="result-row" onClick={onSelect}><span className="stop-icon"><MapPin size={18} /></span><span className="result-copy"><strong>{stop.stop_name}</strong><small>Ponto {stop.stop_code || stop.stop_id}</small></span><ChevronRight size={17} /></button>;
+}
+
+function ItinerarySkeleton() {
+  return <div className="timeline-skeleton" aria-label="Carregando pontos">{Array.from({ length: 5 }).map((_, index) => <span key={index} />)}</div>;
+}
+
+function scheduledStopTime(stop: LineStop): string | null {
+  const value = stop.departure_time || stop.arrival_time;
+  return value ? value.slice(0, 5) : null;
 }
 
 function toRecentLine(line: Line): RecentSelection {

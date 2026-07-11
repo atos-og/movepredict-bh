@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
+import { MovingBusMarker } from "@/components/map/moving-bus-marker";
 import type { Coordinates } from "@/types/mobility";
 import type { LineRoute, LineStop, Stop } from "@/types/transit";
 import type { VehiclePosition } from "@/types/realtime";
@@ -133,19 +134,7 @@ export default function MapView({
             </CircleMarker>
           ))}
       {showVehicles &&
-        vehicles.map((vehicle) => (
-          <CircleMarker
-            key={vehicle.vehicle_id}
-            center={[vehicle.latitude, vehicle.longitude]}
-            radius={8}
-            pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#1c5aa6", fillOpacity: 1 }}
-          >
-            <Popup>
-              <strong>Veículo {vehicle.vehicle_id}</strong>
-              <br />{vehicle.speed_kmh ? `${Math.round(vehicle.speed_kmh)} km/h` : "Velocidade indisponível"}
-            </Popup>
-          </CircleMarker>
-        ))}
+        vehicles.map((vehicle) => <MovingBusMarker key={vehicle.vehicle_id} vehicle={vehicle} />)}
     </MapContainer>
   );
 }

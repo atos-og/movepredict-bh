@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { GeolocationState } from "@/types/mobility";
 
-const INITIAL_STATE: GeolocationState = { status: "requesting", coordinates: null };
+const INITIAL_STATE: GeolocationState = { status: "idle", coordinates: null };
 
 export function useGeolocation() {
   const [state, setState] = useState<GeolocationState>(INITIAL_STATE);
@@ -27,18 +27,18 @@ export function useGeolocation() {
       },
       (error) => {
         setState({
-          status: error.code === error.PERMISSION_DENIED ? "denied" : "unavailable",
+          status:
+            error.code === error.PERMISSION_DENIED
+              ? "denied"
+              : error.code === error.TIMEOUT
+                ? "timeout"
+                : "unavailable",
           coordinates: null,
         });
       },
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
     );
   }, []);
-
-  useEffect(() => {
-    const initialRequest = window.setTimeout(requestLocation, 0);
-    return () => window.clearTimeout(initialRequest);
-  }, [requestLocation]);
 
   return { ...state, requestLocation };
 }

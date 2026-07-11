@@ -7,9 +7,10 @@ type DestinationSearchProps = {
   onChange: (value: string) => void;
   onSubmit: () => void;
   onClear: () => void;
+  onNavigateResults?: () => void;
 };
 
-export function DestinationSearch({ value, onChange, onSubmit, onClear }: DestinationSearchProps) {
+export function DestinationSearch({ value, onChange, onSubmit, onClear, onNavigateResults }: DestinationSearchProps) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     onSubmit();
@@ -23,6 +24,13 @@ export function DestinationSearch({ value, onChange, onSubmit, onClear }: Destin
         onChange={(event) => onChange(event.target.value)}
         placeholder="Para onde você quer ir?"
         aria-label="Buscar destino, linha ou ponto"
+        aria-controls="destination-suggestions"
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" && onNavigateResults) {
+            event.preventDefault();
+            onNavigateResults();
+          }
+        }}
         autoComplete="off"
       />
       {value && (

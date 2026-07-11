@@ -227,6 +227,8 @@ node_modules/
 .next/
 out/
 *.tsbuildinfo
+test-results/
+playwright-report/
 
 # Local environment files (examples remain versioned)
 .env.local
