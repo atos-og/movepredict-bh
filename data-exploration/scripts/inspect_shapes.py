@@ -11,7 +11,9 @@ def main() -> None:
 
     if not shapes_file.exists():
         print(f"Arquivo não encontrado: {shapes_file}")
-        print("\nAntes de rodar este script com dados reais, é necessário baixar e extrair o GTFS em:")
+        print(
+            "\nAntes de rodar este script com dados reais, é necessário baixar e extrair o GTFS em:"
+        )
         print("data-exploration/data/raw/")
         return
 

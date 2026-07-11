@@ -9,13 +9,15 @@ O MovePredict BH é uma aplicação para consultar linhas, pontos e trajetos do 
 - Frontend Next.js mobile-first com mapa Leaflet, busca unificada, geolocalização contextual, linhas, pontos e favoritos locais.
 - Testes automatizados do backend e validações de frontend.
 - Pipeline de CI e imagens Docker prontas para avaliação.
-- Sem publicação, credenciais ou infraestrutura externa provisionada.
+- PostgreSQL, migrações, importação GTFS e coleta oficial de posições a cada 20 segundos.
+- ETA baseline versionado e avaliação por MAE preparada para chegadas reais rotuladas.
+- Sem publicação ou credenciais externas provisionadas.
 
 ## Responsabilidades
 
 Atos mantém backend, frontend, integração, testes, CI, documentação e preparação de deploy.
 
-Vinicius mantém exploração e obtenção dos dados em tempo real, PostgreSQL/PostGIS, histórico de posições e previsão de chegada. Essas partes não são implementadas aqui; a integração futura está definida pelos contratos `VehiclePositionProvider`, `ArrivalPredictionProvider`, `VehiclePosition` e `ArrivalPrediction`.
+Vinicius mantém exploração e obtenção dos dados em tempo real, PostgreSQL, histórico de posições e previsão de chegada. A implementação e suas limitações estão em `docs/DATA_PIPELINE.md`.
 
 ## Estrutura
 
@@ -105,3 +107,5 @@ Nenhuma configuração deste repositório publica serviços automaticamente. Con
 - [Roadmap](docs/ROADMAP.md)
 - [Tarefas](docs/TASKS.md)
 - [Decisões técnicas](docs/DECISIONS.md)
+- [Pipeline de dados e ETA](docs/DATA_PIPELINE.md)
+- [Contrato de entrega e mapeamento de IDs](docs/DELIVERY_CONTRACT.md)

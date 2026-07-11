@@ -4,14 +4,18 @@ import csv
 
 def main() -> None:
     project_root = Path(__file__).resolve().parents[2]
-    stop_times_file = project_root / "data-exploration" / "data" / "raw" / "stop_times.txt"
+    stop_times_file = (
+        project_root / "data-exploration" / "data" / "raw" / "stop_times.txt"
+    )
 
     print("MovePredict BH — Inspect GTFS Stop Times")
     print("----------------------------------------")
 
     if not stop_times_file.exists():
         print(f"Arquivo não encontrado: {stop_times_file}")
-        print("\nAntes de rodar este script com dados reais, é necessário baixar e extrair o GTFS em:")
+        print(
+            "\nAntes de rodar este script com dados reais, é necessário baixar e extrair o GTFS em:"
+        )
         print("data-exploration/data/raw/")
         return
 

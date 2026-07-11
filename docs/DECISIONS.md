@@ -33,3 +33,15 @@ Respostas individuais usam `data`, listas usam `data` e `meta`, e falhas usam `e
 ### Motivo
 
 O frontend e integrações futuras conseguem tratar paginação e falhas sem conhecer exceções internas do backend.
+
+## 005 - PostgreSQL com PostGIS e índices espaciais
+
+Pontos e posições armazenam latitude/longitude WGS84 e uma geografia gerada com índice GiST. O
+histórico usa também BRIN temporal e índices compostos. A imagem oficial PostGIS é executada em
+`linux/amd64` no Apple Silicon para manter o ambiente igual ao de produção e aos testes.
+
+## 006 - Não inventar `trip_id` para posições da PBH
+
+O feed oficial informa veículo, código operacional de linha, sentido e posição, mas não `trip_id`.
+A posição pode ser ligada à linha por uma tabela oficial; a viagem permanece nula até existir um
+classificador validado por calendário, horário e progressão espacial.

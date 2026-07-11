@@ -2,6 +2,7 @@
 testpaths = ["tests"]
 addopts = "-q"
 pythonpath = ["."]
+markers = ["integration: requer PostgreSQL/PostGIS de teste"]
 
 [tool.ruff]
 line-length = 100

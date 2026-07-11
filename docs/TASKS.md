@@ -10,10 +10,12 @@
 
 ## Próximas - Vinicius
 
-- [ ] Entregar contrato da fonte de posições em tempo real.
-- [ ] Definir schema e migrações PostgreSQL/PostGIS.
-- [ ] Persistir posições históricas.
-- [ ] Entregar primeira implementação de previsão e versão do modelo.
+- [x] Entregar contrato da fonte de posições em tempo real.
+- [x] Definir schema e migrações PostgreSQL; PostGIS adiado com justificativa.
+- [x] Persistir posições históricas com consumidor idempotente.
+- [x] Entregar ETA baseline versionado e cálculo de MAE.
+- [ ] Rotular chegadas reais e publicar MAE com amostra temporal suficiente.
+- [ ] Implementar associação confiável de posição a `trip_id`.
 
 ## Concluídas - Aplicação
 

@@ -1,6 +1,7 @@
 from pathlib import Path
 import csv
 
+
 def main() -> None:
     project_root = Path(__file__).resolve().parents[2]
     stops_file = project_root / "data-exploration" / "data" / "raw" / "stops.txt"
@@ -10,7 +11,9 @@ def main() -> None:
 
     if not stops_file.exists():
         print(f"Arquivo não encontrado: {stops_file}")
-        print("\nAntes de rodar este script com dados reais, é necessário baixar e extrair o GTFS em:")
+        print(
+            "\nAntes de rodar este script com dados reais, é necessário baixar e extrair o GTFS em:"
+        )
         print("data-exploration/data/raw/")
         return
 
