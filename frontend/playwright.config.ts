@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/visual",
+  workers: 1,
   timeout: 60_000,
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.02 } },
   use: {

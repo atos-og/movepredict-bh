@@ -87,6 +87,8 @@ button { color: inherit; }
 .destination-search input { width: 100%; min-width: 0; border: 0; outline: 0; color: var(--ink); font-size: 15px; }
 .destination-search input::placeholder { color: #71808a; }
 .destination-search .ui-button-ghost { width: 32px; min-height: 32px; padding: 0; }
+.destination-search .ui-button-ghost { grid-column: 3;}
+.destination-search .ui-button-icon { grid-column: 4; }
 .home-scroll { min-height: 0; overflow-y: auto; }
 .home-content { padding: 0 var(--space-5) var(--space-5); }
 .location-cta { width: 100%; min-height: 64px; display: grid; grid-template-columns: 38px minmax(0, 1fr) 18px; align-items: center; gap: var(--space-3); margin: var(--space-4) 0; padding: var(--space-2) var(--space-3); border: 1px solid #c5d5ea; border-radius: var(--radius-md); background: var(--blue-soft); text-align: left; cursor: pointer; }
@@ -394,6 +396,10 @@ button:focus-visible, input:focus-visible, label:has(input:focus-visible) { outl
   .roadmap-app, .roadmap-search-screen, .roadmap-page { width: 390px; height: min(844px, calc(100dvh - 32px)); margin: 16px auto; border: 1px solid rgba(7, 26, 61, .16); border-radius: 8px; box-shadow: 0 20px 60px rgba(7, 26, 61, .18); }
 }
 .roadmap-page { background: #fff; }
+.route-page:has(.best-route)::before,
+.route-details-page::before,
+.active-route-page::before,
+.bus-map-page:has(.moving-bus-marker)::before { position: absolute; z-index: 1500; top: 7px; right: 8px; padding: 3px 6px; border-radius: 4px; background: #fff4cf; color: #725300; font-size: 8px; font-weight: 700; content: "Demonstração visual"; }
 .roadmap-page > .roadmap-header { position: absolute; }
 .roadmap-unavailable { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; color: #58708d; text-align: center; }
 .roadmap-unavailable h1 { margin: 14px 0 8px; color: #071a3d; font-size: 19px; }
