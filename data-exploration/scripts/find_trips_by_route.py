@@ -4,9 +4,7 @@ from gtfs_utils import describe_route, find_routes, index_rows, read_gtfs_csv
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Lista viagens associadas a uma linha."
-    )
+    parser = argparse.ArgumentParser(description="Lista viagens associadas a uma linha.")
     parser.add_argument("query", help="route_id, número ou nome da linha")
     parser.add_argument("--limit", type=int, default=30)
     args = parser.parse_args()
