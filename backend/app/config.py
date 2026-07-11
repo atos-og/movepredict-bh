@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     realtime_max_retries: int = 4
     realtime_backoff_seconds: float = 1.0
     realtime_disappearance_seconds: int = 120
+    trip_match_batch_size: int = 250
+    arrival_detection_batch_size: int = 2_000
     position_retention_days: int = 90
     position_retention_batch_size: int = 50_000
 

@@ -52,24 +52,24 @@ predict_arrivals(
 | PBH tempo real | `NL` | `route_source_codes.source_code` | — | código operacional bruto |
 | Conversão PBH | `Linha` | `route_source_codes.public_line_code` | — | número/variante comercial |
 | GTFS | `routes.route_id` | `transit_routes.gtfs_route_id` | `route_id` | igualdade exata após conversão validada |
-| GTFS | `trips.trip_id` | `transit_trips.gtfs_trip_id` | `trip_id` | não existe no feed; associação opcional |
+| GTFS | `trips.trip_id` | `transit_trips.gtfs_trip_id` | `trip_id` | inferido por linha, sentido, serviço, horário e shape |
 | GTFS | `stops.stop_id` | `transit_stops.gtfs_stop_id` | `stop_id` | usado em programação e previsão |
 
 O fallback de linha remove somente o sufixo operacional após `-` e zeros à esquerda. Se mais de uma
 linha GTFS continuar possível, `route_id` fica nulo. O sistema preserva `NL` para auditoria.
 
-`trip_id` não é inventado. A futura inferência deve exigir, em conjunto:
+`trip_id` não é inventado. A inferência implementada exige, em conjunto:
 
 1. linha já associada;
-2. compatibilidade de `SV` com o sentido, validada por linha;
+2. compatibilidade de `SV` 1/2 com `direction_id` 0/1 quando o sentido está disponível;
 3. serviço ativo no calendário;
 4. janela do horário programado;
 5. proximidade ao shape e progressão coerente;
 6. pontuação mínima e diferença suficiente para o segundo melhor candidato.
 
-`stop_id` não existe no feed de posição. Ele entra pelo GTFS e por `trip_stops`; a chegada real deve
-ser rotulada quando a trajetória cruza a área do ponto no sentido correto, evitando simplesmente
-escolher o ponto geograficamente mais próximo.
+O matching registra `route-direction-calendar-time-shape-v1`, confiança e progressão no shape.
+Casos ambíguos ou fracos são marcados como rejeitados e permanecem sem viagem. `stop_id` entra pelo
+GTFS; a chegada é rotulada por proximidade, baixa velocidade e aproximação ao ponto.
 
 ## Timestamps
 
@@ -93,4 +93,5 @@ posição oficial coletada em 11/07/2026. `trip_id` é nulo intencionalmente.
 - adaptadores retornam os schemas públicos existentes;
 - testes unitários e de integração PostgreSQL passam;
 - ETA possui baseline versionada e avaliação temporal sem vazamento;
+- associação de viagem, geração de ETA e detecção de chegada rodam no pipeline periódico;
 - nenhum segredo ou `.env` real é versionado.

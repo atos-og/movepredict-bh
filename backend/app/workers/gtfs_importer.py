@@ -2,17 +2,27 @@ import argparse
 import csv
 import io
 import logging
+from collections import defaultdict
 from collections.abc import Iterable, Iterator
+from datetime import datetime
 from pathlib import Path
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import SessionLocal
-from app.models import RouteSourceCode, TransitRoute, TransitStop, TransitTrip, TripStop
+from app.models import (
+    RouteSourceCode,
+    ServiceCalendar,
+    ServiceException,
+    TransitRoute,
+    TransitStop,
+    TransitTrip,
+    TripStop,
+)
 
 logger = logging.getLogger("movepredict.gtfs_import")
 
@@ -61,6 +71,8 @@ def import_static_gtfs(session: Session, gtfs_dir: Path, *, include_stop_times: 
         ),
         "gtfs_stop_id",
     )
+    _import_calendars(session, gtfs_dir)
+    _import_shapes(session, gtfs_dir / "shapes.txt")
     routes = {
         gtfs_route_id: route_id
         for gtfs_route_id, route_id in session.execute(
@@ -83,8 +95,11 @@ def import_static_gtfs(session: Session, gtfs_dir: Path, *, include_stop_times: 
         ),
         "gtfs_trip_id",
     )
-    if include_stop_times:
-        _import_stop_times(session, gtfs_dir / "stop_times.txt")
+    _import_schedule(
+        session,
+        gtfs_dir / "stop_times.txt",
+        include_stop_times=include_stop_times,
+    )
     session.commit()
 
 
@@ -125,7 +140,80 @@ def import_line_mapping(session: Session, url: str) -> tuple[int, int]:
     return len(mappings), matched
 
 
-def _import_stop_times(session: Session, path: Path) -> None:
+def _import_calendars(session: Session, gtfs_dir: Path) -> None:
+    _upsert(
+        session,
+        ServiceCalendar,
+        (
+            {
+                "service_id": row["service_id"],
+                **{day: row.get(day) == "1" for day in _WEEKDAYS},
+                "start_date": _gtfs_date(row["start_date"]),
+                "end_date": _gtfs_date(row["end_date"]),
+            }
+            for row in read_csv(gtfs_dir / "calendar.txt")
+        ),
+        "service_id",
+    )
+    exceptions = [
+        {
+            "service_id": row["service_id"],
+            "service_date": _gtfs_date(row["date"]),
+            "exception_type": int(row["exception_type"]),
+        }
+        for row in read_csv(gtfs_dir / "calendar_dates.txt")
+    ]
+    if exceptions:
+        statement = insert(ServiceException).values(exceptions)
+        session.execute(
+            statement.on_conflict_do_update(
+                constraint="uq_service_exception",
+                set_={"exception_type": statement.excluded.exception_type},
+            )
+        )
+        session.commit()
+
+
+def _import_shapes(session: Session, path: Path) -> None:
+    points: dict[str, list[tuple[int, float, float]]] = defaultdict(list)
+    for row in read_csv(path):
+        points[row["shape_id"]].append(
+            (
+                int(row["shape_pt_sequence"]),
+                float(row["shape_pt_lon"]),
+                float(row["shape_pt_lat"]),
+            )
+        )
+    statement = text(
+        """
+        INSERT INTO transit_shapes (gtfs_shape_id, point_count, path, length_meters)
+        VALUES (
+            :shape_id,
+            :point_count,
+            ST_GeomFromText(:wkt, 4326),
+            ST_Length(ST_GeomFromText(:wkt, 4326)::geography)
+        )
+        ON CONFLICT (gtfs_shape_id) DO UPDATE SET
+            point_count = EXCLUDED.point_count,
+            path = EXCLUDED.path,
+            length_meters = EXCLUDED.length_meters
+        """
+    )
+    for shape_id, shape_points in points.items():
+        ordered = sorted(shape_points)
+        coordinates = ",".join(f"{lon} {lat}" for _, lon, lat in ordered)
+        session.execute(
+            statement,
+            {
+                "shape_id": shape_id,
+                "point_count": len(ordered),
+                "wkt": f"LINESTRING({coordinates})",
+            },
+        )
+    session.commit()
+
+
+def _import_schedule(session: Session, path: Path, *, include_stop_times: bool) -> None:
     trips = {
         gtfs_trip_id: trip_id
         for gtfs_trip_id, trip_id in session.execute(
@@ -138,21 +226,73 @@ def _import_stop_times(session: Session, path: Path) -> None:
             select(TransitStop.gtfs_stop_id, TransitStop.id)
         )
     }
-    rows = (
-        {
-            "trip_id": trips[row["trip_id"]],
-            "stop_id": stops[row["stop_id"]],
-            "stop_sequence": int(row["stop_sequence"]),
-            "scheduled_arrival_seconds": _time_seconds(row.get("arrival_time")),
-            "scheduled_departure_seconds": _time_seconds(row.get("departure_time")),
-        }
-        for row in read_csv(path)
-        if row["trip_id"] in trips and row["stop_id"] in stops
-    )
-    for batch in batches(rows):
-        statement = insert(TripStop).values(batch)
-        session.execute(statement.on_conflict_do_nothing(constraint="uq_trip_stop_sequence"))
+    schedule_bounds: dict[int, list[int]] = {}
+    stop_rows: list[dict] = []
+    for row in read_csv(path):
+        trip_id = trips.get(row["trip_id"])
+        stop_id = stops.get(row["stop_id"])
+        if trip_id is None or stop_id is None:
+            continue
+        arrival = _time_seconds(row.get("arrival_time"))
+        departure = _time_seconds(row.get("departure_time"))
+        values = [value for value in (arrival, departure) if value is not None]
+        if values:
+            bounds = schedule_bounds.setdefault(trip_id, [min(values), max(values)])
+            bounds[0] = min(bounds[0], *values)
+            bounds[1] = max(bounds[1], *values)
+        if include_stop_times:
+            stop_rows.append(
+                {
+                    "trip_id": trip_id,
+                    "stop_id": stop_id,
+                    "stop_sequence": int(row["stop_sequence"]),
+                    "scheduled_arrival_seconds": arrival,
+                    "scheduled_departure_seconds": departure,
+                }
+            )
+            if len(stop_rows) >= 5_000:
+                _upsert_trip_stops(session, stop_rows)
+                stop_rows = []
+    if stop_rows:
+        _upsert_trip_stops(session, stop_rows)
+    for batch in batches(
+        (
+            {"id": trip_id, "start_time_seconds": bounds[0], "end_time_seconds": bounds[1]}
+            for trip_id, bounds in schedule_bounds.items()
+        )
+    ):
+        session.execute(update(TransitTrip), batch)
         session.commit()
+    if include_stop_times:
+        session.execute(
+            text(
+                """
+                UPDATE trip_stops AS ts
+                SET shape_progress = ST_LineLocatePoint(sh.path, st.location::geometry)
+                FROM transit_trips AS t, transit_shapes AS sh, transit_stops AS st
+                WHERE ts.trip_id = t.id
+                  AND ts.stop_id = st.id
+                  AND t.shape_id = sh.gtfs_shape_id
+                  AND ts.shape_progress IS NULL
+                """
+            )
+        )
+        session.commit()
+
+
+def _upsert_trip_stops(session: Session, rows: list[dict]) -> None:
+    statement = insert(TripStop).values(rows)
+    session.execute(
+        statement.on_conflict_do_update(
+            constraint="uq_trip_stop_sequence",
+            set_={
+                "stop_id": statement.excluded.stop_id,
+                "scheduled_arrival_seconds": statement.excluded.scheduled_arrival_seconds,
+                "scheduled_departure_seconds": statement.excluded.scheduled_departure_seconds,
+            },
+        )
+    )
+    session.commit()
 
 
 def _upsert(session: Session, model, rows: Iterable[dict], conflict_column: str) -> None:
@@ -188,6 +328,21 @@ def _time_seconds(value: str | None) -> int | None:
         return None
     hours, minutes, seconds = (int(part) for part in value.split(":"))
     return hours * 3600 + minutes * 60 + seconds
+
+
+def _gtfs_date(value: str):
+    return datetime.strptime(value, "%Y%m%d").date()
+
+
+_WEEKDAYS = (
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+)
 
 
 def main() -> None:

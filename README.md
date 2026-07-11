@@ -10,7 +10,8 @@ O MovePredict BH é uma aplicação para consultar linhas, pontos e trajetos do 
 - Testes automatizados do backend e validações de frontend.
 - Pipeline de CI e imagens Docker prontas para avaliação.
 - PostgreSQL, migrações, importação GTFS e coleta oficial de posições a cada 20 segundos.
-- ETA baseline versionado e avaliação por MAE preparada para chegadas reais rotuladas.
+- Associação posição/viagem, ETA por shape e rotulagem de chegadas no pipeline periódico.
+- Avaliação temporal de ETA com MAE, mediana, P90/P95 e segmentações.
 - Sem publicação ou credenciais externas provisionadas.
 
 ## Responsabilidades
