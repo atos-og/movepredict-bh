@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -227,6 +227,8 @@ node_modules/
 .next/
 out/
 *.tsbuildinfo
+test-results/
+playwright-report/
 
 # Local environment files (examples remain versioned)
 .env.local

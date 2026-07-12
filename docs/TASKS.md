@@ -4,16 +4,19 @@
 
 - [ ] Revisar o contrato com Vinicius usando payloads reais.
 - [ ] Adicionar adapters HTTP/SQL quando as fontes estiverem disponíveis.
-- [ ] Criar testes de integração PostGIS.
+- [x] Criar testes de integração PostGIS.
 - [ ] Definir provedor e ambiente de homologação.
-- [ ] Adicionar métricas, logs estruturados e readiness check.
+- [ ] Adicionar métricas exportáveis e readiness check (logs estruturados já entregues).
 
 ## Próximas - Vinicius
 
-- [ ] Entregar contrato da fonte de posições em tempo real.
-- [ ] Definir schema e migrações PostgreSQL/PostGIS.
-- [ ] Persistir posições históricas.
-- [ ] Entregar primeira implementação de previsão e versão do modelo.
+- [x] Entregar contrato da fonte de posições em tempo real.
+- [x] Definir schema e migrações PostgreSQL/PostGIS.
+- [x] Persistir posições históricas com consumidor idempotente.
+- [x] Entregar ETA baseline versionado e cálculo de MAE.
+- [x] Implementar rotulagem automática de chegadas reais.
+- [ ] Publicar métricas de ETA quando houver amostra temporal suficiente.
+- [x] Implementar associação confiável de posição a `trip_id`.
 
 ## Concluídas - Aplicação
 

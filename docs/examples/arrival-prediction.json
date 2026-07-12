@@ -1,0 +1,10 @@
+{
+  "stop_id": "dev-stop",
+  "route_id": "dev-route",
+  "trip_id": "dev-trip",
+  "vehicle_id": "dev-vehicle",
+  "predicted_arrival": "2026-07-11T16:30:00Z",
+  "generated_at": "2026-07-11T16:25:00Z",
+  "uncertainty_seconds": 300,
+  "model_version": "baseline-schedule-v1"
+}

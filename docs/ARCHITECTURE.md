@@ -20,12 +20,12 @@ Routers conhecem HTTP e validação de parâmetros. Services conhecem casos de u
 ## Fronteira com a frente de dados
 
 ```text
-Coleta em tempo real -----\
-PostgreSQL/PostGIS --------> implementação futura dos Protocols -> API -> Frontend
-Modelo de previsão -------/
+Coleta PBH (20 s) ---------\
+PostgreSQL -----------------> providers SQL -> API -> Frontend
+ETA baseline + avaliação --/
 ```
 
-Atos mantém a aplicação e a integração. Vinicius implementará coleta, histórico e previsão. A fronteira é definida por:
+O pipeline de coleta, histórico e previsão inicial está descrito em `docs/DATA_PIPELINE.md`. A fronteira é definida por:
 
 - `VehiclePositionProvider.list_current_positions(route_id)`
 - `ArrivalPredictionProvider.predict_arrivals(stop_id, route_id, at)`

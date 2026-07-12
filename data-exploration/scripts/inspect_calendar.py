@@ -1,5 +1,5 @@
-from pathlib import Path
 import csv
+from pathlib import Path
 
 
 def main() -> None:
@@ -11,7 +11,9 @@ def main() -> None:
 
     if not calendar_file.exists():
         print(f"Arquivo não encontrado: {calendar_file}")
-        print("\nAntes de rodar este script com dados reais, é necessário baixar e extrair o GTFS em:")
+        print(
+            "\nAntes de rodar este script com dados reais, é necessário baixar e extrair o GTFS em:"
+        )
         print("data-exploration/data/raw/")
         return
 

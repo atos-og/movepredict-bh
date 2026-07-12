@@ -1,5 +1,6 @@
-import { TransitExplorer } from "@/components/transit-explorer";
+import { Suspense } from "react";
+import { MobilityHome } from "@/components/roadmap/mobility-home";
 
 export default function Home() {
-  return <TransitExplorer />;
+  return <Suspense><MobilityHome /></Suspense>;
 }

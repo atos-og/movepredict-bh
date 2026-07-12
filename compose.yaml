@@ -1,10 +1,28 @@
 services:
+  db:
+    image: postgis/postgis:17-3.5
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: movepredict
+      POSTGRES_USER: movepredict
+      POSTGRES_PASSWORD: movepredict
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U movepredict -d movepredict"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build: ./backend
     environment:
       MOVEPREDICT_ENVIRONMENT: production
       MOVEPREDICT_GTFS_DATA_DIR: /data/gtfs
       MOVEPREDICT_CORS_ORIGINS: http://localhost:3000
+      MOVEPREDICT_DATABASE_URL: postgresql+psycopg://movepredict:movepredict@db:5432/movepredict
     ports:
       - "8000:8000"
     volumes:
@@ -14,6 +32,50 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+    depends_on:
+      db:
+        condition: service_healthy
+
+  collector:
+    build: ./backend
+    command: ["sh", "-c", "alembic upgrade head && python -m app.workers.realtime_pipeline"]
+    environment:
+      MOVEPREDICT_DATABASE_URL: postgresql+psycopg://movepredict:movepredict@db:5432/movepredict
+      MOVEPREDICT_REALTIME_POSITIONS_URL: https://temporeal.pbh.gov.br/?param=D
+      MOVEPREDICT_REALTIME_INTERVAL_SECONDS: 20
+      MOVEPREDICT_REALTIME_TIMEOUT_SECONDS: 15
+      MOVEPREDICT_REALTIME_MAX_RETRIES: 4
+      MOVEPREDICT_REALTIME_BACKOFF_SECONDS: 1
+      MOVEPREDICT_REALTIME_DISAPPEARANCE_SECONDS: 120
+      MOVEPREDICT_TRIP_MATCH_BATCH_SIZE: 250
+      MOVEPREDICT_ARRIVAL_DETECTION_BATCH_SIZE: 2000
+    depends_on:
+      db:
+        condition: service_healthy
+
+  gtfs-import:
+    profiles: ["tools"]
+    build: ./backend
+    command: ["sh", "-c", "alembic upgrade head && python -m app.workers.gtfs_importer --include-stop-times"]
+    environment:
+      MOVEPREDICT_DATABASE_URL: postgresql+psycopg://movepredict:movepredict@db:5432/movepredict
+      MOVEPREDICT_GTFS_DATA_DIR: /data/gtfs
+    volumes:
+      - ./data-exploration/data/raw:/data/gtfs:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  retention:
+    build: ./backend
+    command: ["python", "-m", "app.workers.retention"]
+    environment:
+      MOVEPREDICT_DATABASE_URL: postgresql+psycopg://movepredict:movepredict@db:5432/movepredict
+      MOVEPREDICT_POSITION_RETENTION_DAYS: 90
+      MOVEPREDICT_POSITION_RETENTION_BATCH_SIZE: 50000
+    depends_on:
+      db:
+        condition: service_healthy
 
   web:
     build:
@@ -25,3 +87,6 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+volumes:
+  postgres-data:

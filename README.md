@@ -6,16 +6,19 @@ O MovePredict BH é uma aplicação para consultar linhas, pontos e trajetos do 
 
 - API FastAPI modular com linhas, pontos, trajetos e viagens.
 - Filtros, paginação, CORS, respostas tipadas e erros padronizados.
-- Frontend Next.js com busca por linha/ponto e mapa Leaflet responsivo.
+- Frontend Next.js mobile-first com mapa Leaflet, busca unificada, geolocalização contextual, linhas, pontos e favoritos locais.
 - Testes automatizados do backend e validações de frontend.
 - Pipeline de CI e imagens Docker prontas para avaliação.
-- Sem publicação, credenciais ou infraestrutura externa provisionada.
+- PostgreSQL, migrações, importação GTFS e coleta oficial de posições a cada 20 segundos.
+- Associação posição/viagem, ETA por shape e rotulagem de chegadas no pipeline periódico.
+- Avaliação temporal de ETA com MAE, mediana, P90/P95 e segmentações.
+- Sem publicação ou credenciais externas provisionadas.
 
 ## Responsabilidades
 
 Atos mantém backend, frontend, integração, testes, CI, documentação e preparação de deploy.
 
-Vinicius mantém exploração e obtenção dos dados em tempo real, PostgreSQL/PostGIS, histórico de posições e previsão de chegada. Essas partes não são implementadas aqui; a integração futura está definida pelos contratos `VehiclePositionProvider`, `ArrivalPredictionProvider`, `VehiclePosition` e `ArrivalPrediction`.
+Vinicius mantém exploração e obtenção dos dados em tempo real, PostgreSQL, histórico de posições e previsão de chegada. A implementação e suas limitações estão em `docs/DATA_PIPELINE.md`.
 
 ## Estrutura
 
@@ -63,6 +66,14 @@ pnpm dev
 
 A aplicação fica em `http://localhost:3000` e espera a API em `http://localhost:8000`.
 
+Rotas principais do frontend:
+
+- `/`: experiência mobile orientada ao destino;
+- `/linhas` e `/linha/{routeId}`: linhas e itinerários GTFS reais;
+- `/pontos`: pontos próximos com consulta geográfica limitada;
+- `/rota` e `/viagem`: contratos para planejamento e acompanhamento;
+- `/explorar`: explorador técnico anterior, preservado integralmente.
+
 ## Validação
 
 ```powershell
@@ -72,6 +83,8 @@ ruff check app tests
 ruff format --check app tests
 
 cd ../frontend
+pnpm test
+pnpm test:visual
 pnpm lint
 pnpm typecheck
 pnpm build
@@ -95,3 +108,5 @@ Nenhuma configuração deste repositório publica serviços automaticamente. Con
 - [Roadmap](docs/ROADMAP.md)
 - [Tarefas](docs/TASKS.md)
 - [Decisões técnicas](docs/DECISIONS.md)
+- [Pipeline de dados e ETA](docs/DATA_PIPELINE.md)
+- [Contrato de entrega e mapeamento de IDs](docs/DELIVERY_CONTRACT.md)
