@@ -23,6 +23,18 @@ export type ArrivalPrediction = {
   model_version: string | null;
 };
 
+export type RealtimeMeta = {
+  generated_at: string;
+  count: number;
+  stale: boolean;
+  stale_after_seconds: number;
+};
+
+export type RealtimeResponse<T> = {
+  data: T[];
+  meta: RealtimeMeta;
+};
+
 export interface RealtimeProvider {
   listVehicles(routeId?: string): Promise<VehiclePosition[]>;
   listPredictions(stopId: string, routeId?: string): Promise<ArrivalPrediction[]>;

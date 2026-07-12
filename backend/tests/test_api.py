@@ -1,9 +1,15 @@
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from app.dependencies import get_gtfs_service
+from app.dependencies import (
+    get_arrival_prediction_provider,
+    get_gtfs_service,
+    get_vehicle_position_provider,
+)
 from app.main import create_app
+from app.schemas.realtime import ArrivalPrediction, VehiclePosition
 from app.services.gtfs_service import GtfsService
 
 
@@ -118,3 +124,62 @@ def test_cors_allows_configured_frontend(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+
+def test_realtime_endpoints_expose_provider_data(gtfs_dir: Path) -> None:
+    now = datetime.now(UTC)
+
+    class VehicleProvider:
+        def list_current_positions(self, route_id: str | None = None):
+            assert route_id == "r1"
+            return [
+                VehiclePosition(
+                    vehicle_id="bus-1",
+                    route_id="r1",
+                    latitude=-19.92,
+                    longitude=-43.94,
+                    observed_at=now,
+                )
+            ]
+
+    class ArrivalProvider:
+        def predict_arrivals(self, stop_id: str, route_id: str | None = None, at=None):
+            assert stop_id == "s1"
+            return [
+                ArrivalPrediction(
+                    stop_id="s1",
+                    route_id="r1",
+                    vehicle_id="bus-1",
+                    predicted_arrival=now + timedelta(minutes=4),
+                    generated_at=now,
+                )
+            ]
+
+    application = create_app()
+    application.dependency_overrides[get_gtfs_service] = lambda: GtfsService(gtfs_dir)
+    application.dependency_overrides[get_vehicle_position_provider] = VehicleProvider
+    application.dependency_overrides[get_arrival_prediction_provider] = ArrivalProvider
+    with TestClient(application) as realtime_client:
+        vehicles = realtime_client.get("/realtime/vehicles", params={"route_id": "r1"})
+        arrivals = realtime_client.get("/realtime/stops/s1/arrivals")
+
+    assert vehicles.status_code == 200
+    assert vehicles.json()["data"][0]["vehicle_id"] == "bus-1"
+    assert vehicles.json()["meta"]["stale"] is False
+    assert arrivals.status_code == 200
+    assert arrivals.json()["data"][0]["vehicle_id"] == "bus-1"
+
+
+def test_metrics_are_exposed(client: TestClient) -> None:
+    client.get("/health")
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "movepredict_http_requests_total" in response.text
+
+
+def test_security_and_timing_headers(client: TestClient) -> None:
+    response = client.get("/health")
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"
+    assert response.headers["permissions-policy"] == "geolocation=(self)"
+    assert response.headers["server-timing"].startswith("app;dur=")

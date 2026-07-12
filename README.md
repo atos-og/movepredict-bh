@@ -110,3 +110,19 @@ Nenhuma configuração deste repositório publica serviços automaticamente. Con
 - [Decisões técnicas](docs/DECISIONS.md)
 - [Pipeline de dados e ETA](docs/DATA_PIPELINE.md)
 - [Contrato de entrega e mapeamento de IDs](docs/DELIVERY_CONTRACT.md)
+
+## Integracao em tempo real
+
+Com PostgreSQL, importacao GTFS e coletor ativos, a API disponibiliza:
+
+- `GET /realtime/vehicles`: posicoes recentes, opcionalmente filtradas por linha;
+- `GET /realtime/stops/{stop_id}/arrivals`: proximas chegadas previstas;
+- `GET /ready`: disponibilidade do banco;
+- `GET /metrics`: contadores HTTP no formato Prometheus.
+
+O frontend atualiza veiculos e previsoes a cada 20 segundos e diferencia dados vazios,
+desatualizados e indisponiveis. A busca de enderecos usa `NEXT_PUBLIC_GEOCODING_URL`,
+que deve apontar para uma instancia propria ou provedor que autorize autocomplete.
+O planejamento completo de transporte publico ainda requer a configuracao de um motor como
+OpenTripPlanner em `NEXT_PUBLIC_JOURNEY_PLANNER_URL`; nenhuma rota e inventada quando esse
+servico nao esta disponivel.

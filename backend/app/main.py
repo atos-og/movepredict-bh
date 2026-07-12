@@ -1,18 +1,27 @@
+import logging
+from time import perf_counter
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.config import get_settings
 from app.exceptions import AppError
-from app.routers import lines, stops, system
+from app.observability import logger, record_request
+from app.routers import lines, realtime, stops, system
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
     application = FastAPI(
         title=settings.app_name,
         version="0.1.0",
@@ -25,16 +34,44 @@ def create_app() -> FastAPI:
         allow_methods=["GET"],
         allow_headers=["*"],
     )
+    application.add_middleware(GZipMiddleware, minimum_size=1_000)
     application.include_router(system.router)
     application.include_router(lines.router)
     application.include_router(stops.router)
+    application.include_router(realtime.router)
 
     @application.middleware("http")
     async def add_request_id(request: Request, call_next):
+        started_at = perf_counter()
         request_id = request.headers.get("X-Request-ID", str(uuid4()))
         request.state.request_id = request_id
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception(
+                "request_failed request_id=%s method=%s path=%s",
+                request_id,
+                request.method,
+                request.url.path,
+            )
+            raise
         response.headers["X-Request-ID"] = request_id
+        duration_ms = (perf_counter() - started_at) * 1_000
+        response.headers["Server-Timing"] = f"app;dur={duration_ms:.2f}"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(self)"
+        matched_route = request.scope.get("route")
+        metric_path = getattr(matched_route, "path", request.url.path)
+        record_request(request.method, metric_path, response.status_code)
+        logger.info(
+            "request_complete request_id=%s method=%s path=%s status=%s duration_ms=%.2f",
+            request_id,
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+        )
         return response
 
     @application.exception_handler(AppError)
@@ -69,6 +106,16 @@ def create_app() -> FastAPI:
             status_code=error.status_code,
             code="http_error",
             message=message,
+        )
+
+    @application.exception_handler(SQLAlchemyError)
+    async def handle_database_error(request: Request, error: SQLAlchemyError) -> JSONResponse:
+        logger.exception("database_unavailable request_id=%s", request.state.request_id)
+        return _error_response(
+            request,
+            status_code=503,
+            code="database_unavailable",
+            message="Os dados em tempo real estao temporariamente indisponiveis.",
         )
 
     return application
