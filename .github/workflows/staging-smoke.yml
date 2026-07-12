@@ -1,0 +1,32 @@
+name: Staging smoke test
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: URL HTTPS da API de staging
+        required: true
+        type: string
+      web_url:
+        description: URL HTTPS do frontend de staging
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate API liveness and readiness
+        run: |
+          curl --fail --silent --show-error --retry 3 "${{ inputs.api_url }}/health"
+          curl --fail --silent --show-error --retry 3 "${{ inputs.api_url }}/ready"
+      - name: Validate static and realtime contracts
+        run: |
+          curl --fail --silent --show-error --retry 3 "${{ inputs.api_url }}/lines?limit=1"
+          curl --fail --silent --show-error --retry 3 "${{ inputs.api_url }}/stops?limit=1"
+          curl --fail --silent --show-error --retry 3 "${{ inputs.api_url }}/realtime/vehicles?limit=1"
+      - name: Validate frontend
+        run: curl --fail --silent --show-error --retry 3 "${{ inputs.web_url }}" > /dev/null

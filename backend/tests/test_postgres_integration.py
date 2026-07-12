@@ -2,9 +2,12 @@ import os
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
+from app.database import get_db
+from app.main import create_app
 from app.models import (
     ArrivalPrediction,
     RouteSourceCode,
@@ -66,7 +69,7 @@ def test_persistence_deduplication_disappearance_and_provider_contract(
             route_id=route.id,
         )
     )
-    observed = datetime(2026, 7, 11, 15, tzinfo=UTC)
+    observed = datetime.now(UTC)
     first_snapshot = [
         _position("bus-1", observed, "101"),
         _position("bus-1", observed, "101"),
@@ -116,6 +119,23 @@ def test_persistence_deduplication_disappearance_and_provider_contract(
     assert isinstance(predictions[0], ArrivalPredictionSchema)
     assert predictions[0].vehicle_id == "bus-1"
     assert predictions[0].route_id == "r1"
+
+    application = create_app()
+    application.dependency_overrides[get_db] = lambda: postgres_session
+    with TestClient(application) as client:
+        vehicle_response = client.get(
+            "/realtime/vehicles",
+            params={"route_id": "r1", "max_age_seconds": 3600},
+        )
+        arrival_response = client.get(
+            "/realtime/stops/s1/arrivals",
+            params={"max_age_seconds": 3600},
+        )
+
+    assert vehicle_response.status_code == 200
+    assert vehicle_response.json()["data"][0]["vehicle_id"] == "bus-1"
+    assert arrival_response.status_code == 200
+    assert arrival_response.json()["data"][0]["stop_id"] == "s1"
 
 
 def test_trip_matching_prediction_and_arrival_detection(postgres_session: Session) -> None:

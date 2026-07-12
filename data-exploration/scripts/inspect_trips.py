@@ -13,7 +13,9 @@ def main() -> None:
     for trip in trips[: max(args.limit, 0)]:
         print(
             "- trip_id={trip_id} | route_id={route_id} | sentido={direction_id} | "
-            "destino={trip_headsign} | shape_id={shape_id} | service_id={service_id}".format(**trip)
+            "destino={trip_headsign} | shape_id={shape_id} | service_id={service_id}".format(
+                **trip
+            )
         )
 
 

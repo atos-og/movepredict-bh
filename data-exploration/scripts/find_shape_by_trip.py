@@ -9,7 +9,11 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=20)
     args = parser.parse_args()
     trip = next(
-        (row for row in read_gtfs_csv("trips.txt") if row.get("trip_id") == args.trip_id),
+        (
+            row
+            for row in read_gtfs_csv("trips.txt")
+            if row.get("trip_id") == args.trip_id
+        ),
         None,
     )
     if not trip:

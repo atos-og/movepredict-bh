@@ -9,6 +9,7 @@ import type {
   Trip,
 } from "@/types/transit";
 import type { GeoBounds } from "@/lib/geo";
+import type { ArrivalPrediction, RealtimeResponse, VehiclePosition } from "@/types/realtime";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
@@ -77,4 +78,12 @@ export const api = {
       })}`,
     ),
   getStop: (stopId: string) => request<DataResponse<Stop>>(`/stops/${stopId}`),
+  listVehicles: (routeId?: string, maxAgeSeconds = 120) =>
+    request<RealtimeResponse<VehiclePosition>>(
+      `/realtime/vehicles${params({ route_id: routeId, max_age_seconds: maxAgeSeconds })}`,
+    ),
+  listArrivals: (stopId: string, routeId?: string) =>
+    request<RealtimeResponse<ArrivalPrediction>>(
+      `/realtime/stops/${stopId}/arrivals${params({ route_id: routeId })}`,
+    ),
 };

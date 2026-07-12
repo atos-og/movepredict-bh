@@ -480,12 +480,25 @@ button:focus-visible, input:focus-visible, label:has(input:focus-visible) { outl
 .nearby-map .roadmap-map { inset: 0; }
 .nearby-location-request { min-height: 34px; display: flex; align-items: center; gap: 6px; margin: 8px 16px 0; border: 0; background: transparent; color: #1261c9; font-size: 10px; font-weight: 700; }
 .nearby-cards { padding: 4px 12px; }
-.nearby-cards article { min-height: 82px; display: grid; grid-template-columns: 28px minmax(0, 1fr) 16px; align-items: center; gap: 7px; padding: 9px 5px; border-bottom: 1px solid #e7ecf2; }
-.nearby-cards article > svg { color: #1769db; }
-.nearby-cards article span { min-width: 0; display: flex; flex-direction: column; }
+.nearby-cards article, .nearby-stop-card { width: 100%; min-height: 82px; display: grid; grid-template-columns: 28px minmax(0, 1fr) 16px; align-items: center; gap: 7px; padding: 9px 5px; border: 0; border-bottom: 1px solid #e7ecf2; background: transparent; color: inherit; text-align: left; }
+.nearby-cards article > svg, .nearby-stop-card > svg { color: #1769db; }
+.nearby-cards article span, .nearby-stop-card span { min-width: 0; display: flex; flex-direction: column; }
 .nearby-cards strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .nearby-cards small { color: #69798d; font-size: 9px; }
 .nearby-cards em { color: #8a6500; font-size: 8px; font-style: normal; }
+.roadmap-inline-status { margin: 8px 12px; color: #526477; font-size: 12px; }
+.stop-arrivals-sheet { position: fixed; z-index: 1200; right: max(12px, calc((100vw - 430px) / 2 + 12px)); bottom: 70px; left: max(12px, calc((100vw - 430px) / 2 + 12px)); max-height: 45vh; overflow: auto; border: 1px solid #dbe4ec; border-radius: 8px; background: #fff; box-shadow: 0 16px 40px rgb(14 35 61 / 18%); padding: 14px; }
+.stop-arrivals-sheet header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.stop-arrivals-sheet header span { display: flex; min-width: 0; flex-direction: column; }
+.stop-arrivals-sheet header small, .stop-arrivals-sheet p { color: #68798b; font-size: 11px; }
+.stop-arrivals-sheet header button { width: 34px; height: 34px; display: grid; flex: 0 0 auto; place-items: center; border: 0; background: transparent; }
+.stop-arrivals-sheet ol { margin: 10px 0 0; padding: 0; list-style: none; }
+.stop-arrivals-sheet li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #e7ecf2; font-size: 12px; }
+.stop-arrivals-sheet li span { color: #087b55; font-weight: 700; }
+.journey-result { padding: 16px 0; border-bottom: 1px solid #e2e9f0; }
+.journey-result header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.journey-result p { display: flex; align-items: center; gap: 8px; margin: 10px 0; color: #243b53; font-size: 12px; }
+.journey-result > small { color: #68798b; }
 .line-detail-page { padding-bottom: 62px; }
 .line-detail-content > header { min-height: 72px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 10px 14px; }
 .line-detail-content > header > span:last-child { min-width: 0; display: flex; flex-direction: column; }

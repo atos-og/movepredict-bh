@@ -29,7 +29,9 @@ def test_stops_for_trip_joins_and_orders_stop_times(monkeypatch) -> None:
         ],
     }
     monkeypatch.setattr(find_stops_by_trip, "read_gtfs_csv", fixtures.__getitem__)
-    monkeypatch.setattr(find_stops_by_trip, "iter_gtfs_csv", lambda name: iter(fixtures[name]))
+    monkeypatch.setattr(
+        find_stops_by_trip, "iter_gtfs_csv", lambda name: iter(fixtures[name])
+    )
 
     result = find_stops_by_trip.stops_for_trip("T1")
 

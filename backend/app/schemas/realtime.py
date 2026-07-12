@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class VehiclePosition(BaseModel):
@@ -25,3 +25,20 @@ class ArrivalPrediction(BaseModel):
     generated_at: datetime
     uncertainty_seconds: int | None = None
     model_version: str | None = None
+
+
+class RealtimeMeta(BaseModel):
+    generated_at: datetime
+    count: int = Field(ge=0)
+    stale: bool = False
+    stale_after_seconds: int = Field(ge=1)
+
+
+class VehiclePositionResponse(BaseModel):
+    data: list[VehiclePosition]
+    meta: RealtimeMeta
+
+
+class ArrivalPredictionResponse(BaseModel):
+    data: list[ArrivalPrediction]
+    meta: RealtimeMeta

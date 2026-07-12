@@ -39,7 +39,9 @@ def normalize(value: str) -> str:
 def find_routes(query: str) -> list[dict[str, str]]:
     needle = normalize(query)
     routes = read_gtfs_csv("routes.txt")
-    exact = [route for route in routes if normalize(route.get("route_id", "")) == needle]
+    exact = [
+        route for route in routes if normalize(route.get("route_id", "")) == needle
+    ]
     if exact:
         return exact
     return [
@@ -52,7 +54,9 @@ def find_routes(query: str) -> list[dict[str, str]]:
     ]
 
 
-def index_rows(rows: Iterable[dict[str, str]], key: str) -> dict[str, list[dict[str, str]]]:
+def index_rows(
+    rows: Iterable[dict[str, str]], key: str
+) -> dict[str, list[dict[str, str]]]:
     result: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
         result[row.get(key, "")].append(row)

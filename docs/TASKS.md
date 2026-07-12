@@ -1,33 +1,32 @@
-# Tasks - MovePredict BH
+# Tarefas MovePredict BH
 
-## Próximas - Atos
+## Atos
 
-- [ ] Revisar o contrato com Vinicius usando payloads reais.
-- [ ] Adicionar adapters HTTP/SQL quando as fontes estiverem disponíveis.
-- [x] Criar testes de integração PostGIS.
-- [ ] Definir provedor e ambiente de homologação.
-- [ ] Adicionar métricas exportáveis e readiness check (logs estruturados já entregues).
+- [x] Integrar PR #34 na `main`.
+- [x] Expor endpoints de veiculos e previsoes.
+- [x] Integrar veiculos e chegadas ao mapa com polling controlado.
+- [x] Tratar loading, vazio, atraso e indisponibilidade.
+- [x] Conectar geocodificacao real configuravel.
+- [x] Adicionar readiness, metricas, logs e seguranca basica.
+- [x] Preparar smoke test manual de staging.
+- [ ] Escolher/provisionar motor de roteamento publico e credencial.
+- [ ] Validar staging depois da autorizacao de URLs e secrets.
+- [ ] Concluir testes de carga e auditoria com ambiente completo.
 
-## Próximas - Vinicius
+## Vinicius
 
-- [x] Entregar contrato da fonte de posições em tempo real.
-- [x] Definir schema e migrações PostgreSQL/PostGIS.
-- [x] Persistir posições históricas com consumidor idempotente.
-- [x] Entregar ETA baseline versionado e cálculo de MAE.
-- [x] Implementar rotulagem automática de chegadas reais.
-- [ ] Publicar métricas de ETA quando houver amostra temporal suficiente.
-- [x] Implementar associação confiável de posição a `trip_id`.
+- [x] Entregar fonte e contrato de posicoes.
+- [x] Criar schema e migracoes PostgreSQL/PostGIS.
+- [x] Persistir posicoes historicas.
+- [x] Associar posicoes a viagens GTFS.
+- [x] Gerar e rotular previsoes de chegada.
+- [x] Criar avaliador temporal.
+- [ ] Coletar amostra suficiente e publicar metricas de ETA.
 
-## Concluídas - Aplicação
+## Trabalho conjunto
 
-- [x] Revisar sem merge a branch de detalhe de ponto.
-- [x] Separar routers, services e schemas.
-- [x] Implementar linhas, pontos, trajetos, filtros e paginação.
-- [x] Remover `/pontos` mockado.
-- [x] Padronizar erros e configurar CORS/ambiente.
-- [x] Criar testes FastAPI TestClient.
-- [x] Criar frontend Next.js, TypeScript e Leaflet.
-- [x] Definir contratos futuros de veículos e previsões.
-- [x] Criar GitHub Actions.
-- [x] Preparar Dockerfiles e Compose sem publicar.
-- [x] Atualizar documentação principal.
+- [ ] Executar o sistema por periodo prolongado em staging.
+- [ ] Fazer teste de campo com linhas reais de Belo Horizonte.
+- [ ] Definir limiares minimos de qualidade do ETA.
+- [ ] Revisar privacidade, termos das fontes e politica de retencao.
+- [ ] Aprovar demonstracao publica e versao de producao.

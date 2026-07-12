@@ -39,6 +39,7 @@ jobs:
             backend/requirements.txt
             backend/requirements-dev.txt
       - run: pip install -r requirements-dev.txt
+      - run: pip check
       - run: ruff check app tests migrations ../data-exploration/scripts ../data-exploration/tests
       - run: ruff format --check app tests migrations ../data-exploration/scripts ../data-exploration/tests
       - run: alembic upgrade head
@@ -66,8 +67,12 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --prod
+      - run: pnpm test
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:visual

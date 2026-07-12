@@ -11,7 +11,9 @@ from gtfs_utils import (
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Resume linhas, viagens, pontos e traçados.")
+    parser = argparse.ArgumentParser(
+        description="Resume linhas, viagens, pontos e traçados."
+    )
     parser.add_argument("query", help="route_id, número ou nome da linha")
     args = parser.parse_args()
     routes = find_routes(args.query)

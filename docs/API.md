@@ -1,94 +1,64 @@
-# API - MovePredict BH
+# API MovePredict BH
 
 Base local: `http://localhost:8000`. OpenAPI: `/docs` e `/openapi.json`.
 
-## Formato das respostas
+## Contratos
 
-Recursos individuais usam:
-
-```json
-{ "data": { "route_id": "561787" } }
-```
-
-Coleções paginadas usam:
-
-```json
-{
-  "data": [],
-  "meta": { "total": 0, "returned": 0, "limit": 50, "offset": 0 }
-}
-```
-
-Erros usam:
+Recursos individuais usam `{ "data": {...} }`. Colecoes paginadas retornam `data` e
+`meta` com `total`, `returned`, `limit` e `offset`. Erros seguem o envelope:
 
 ```json
 {
   "error": {
     "code": "resource_not_found",
-    "message": "Linha 'x' não encontrada.",
+    "message": "Recurso nao encontrado.",
     "request_id": "...",
-    "details": { "route_id": "x" }
+    "details": {}
   }
 }
 ```
 
-O cabeçalho `X-Request-ID` é aceito e devolvido em todas as respostas.
+Todas as respostas recebem `X-Request-ID`, `Server-Timing` e cabecalhos basicos de
+seguranca.
 
-## Endpoints
+## Sistema
 
-### `GET /`
+- `GET /`: identificacao e versao.
+- `GET /health`: liveness; nao consulta dependencias.
+- `GET /ready`: readiness; valida PostgreSQL.
+- `GET /metrics`: metricas Prometheus, omitido do OpenAPI.
 
-Identificação e versão da API.
+## Linhas
 
-### `GET /health`
+- `GET /lines`: `q`, `route_type`, `limit` e `offset`.
+- `GET /lines/{route_id}`: detalhes da linha.
+- `GET /lines/{route_id}/stops`: `direction_id` e `trip_id` opcionais.
+- `GET /lines/{route_id}/route`: GeoJSON `LineString`.
+- `GET /lines/{route_id}/trips`: viagens paginadas.
 
-Liveness da aplicação. Não valida banco ou provedor externo.
+## Pontos
 
-### `GET /lines`
+- `GET /stops`: `q`, caixa geografica, `limit` e `offset`.
+- `GET /stops/{stop_id}`: detalhes e coordenadas.
 
-Lista linhas. Parâmetros:
+## Tempo real
 
-- `q`: busca em ID, número e nome.
-- `route_type`: filtro pelo tipo GTFS.
-- `limit`: 1 a 200, padrão 50.
-- `offset`: deslocamento, padrão 0.
+### `GET /realtime/vehicles`
 
-### `GET /lines/{route_id}`
+Retorna a posicao mais recente de veiculos ativos. Parametros: `route_id`, `limit`
+(ate 2.000) e `max_age_seconds`. Posicoes anteriores ao limite de frescor sao omitidas.
 
-Retorna os dados de uma linha.
+### `GET /realtime/stops/{stop_id}/arrivals`
 
-### `GET /lines/{route_id}/stops`
+Retorna previsoes futuras ordenadas por horario. Parametros: `route_id`, `limit` e
+`max_age_seconds`. `meta.stale` impede que uma previsao antiga seja apresentada como atual.
 
-Retorna a sequência de pontos de uma viagem representativa. Aceita `direction_id` (`0` ou `1`) e `trip_id` para seleção explícita.
+Uma lista vazia e uma resposta valida quando nao ha veiculos recentes ou previsoes futuras.
 
-### `GET /lines/{route_id}/route`
+## Erros
 
-Retorna o trajeto como GeoJSON `LineString`. Aceita `direction_id` e `trip_id`.
-
-### `GET /lines/{route_id}/trips`
-
-Endpoint auxiliar preservado do trabalho anterior. Aceita `direction_id`, `limit` e `offset`.
-
-### `GET /stops`
-
-Lista pontos. Parâmetros:
-
-- `q`: busca em ID, código e nome.
-- `min_lat`, `max_lat`, `min_lon`, `max_lon`: caixa geográfica.
-- `limit`: 1 a 200, padrão 50.
-- `offset`: deslocamento, padrão 0.
-
-### `GET /stops/{stop_id}`
-
-Retorna os dados e coordenadas de um ponto.
-
-## Códigos de erro
-
-- `404 resource_not_found`: linha, ponto, viagem ou shape inexistente.
-- `404 http_error`: rota HTTP inexistente, incluindo o removido `/pontos`.
-- `422 validation_error`: parâmetros inválidos.
-- `503 data_source_unavailable`: arquivo GTFS necessário não está disponível.
-
-## Interfaces futuras
-
-Posições e previsões não têm endpoints ativos nesta etapa. Os contratos estão em `backend/app/schemas/realtime.py` e `backend/app/services/provider_contracts.py`. A implementação de Vinicius deverá satisfazer esses contratos antes da exposição HTTP.
+- `404 resource_not_found`: recurso GTFS inexistente.
+- `404 http_error`: rota HTTP inexistente.
+- `422 validation_error`: parametros invalidos.
+- `503 data_source_unavailable`: GTFS indisponivel.
+- `503 database_unavailable`: PostgreSQL/PostGIS indisponivel.
