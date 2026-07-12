@@ -75,4 +75,4 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:visual
+      - run: pnpm test:ci
