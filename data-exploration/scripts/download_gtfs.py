@@ -25,9 +25,7 @@ def main() -> None:
         print("Defina a URL direta do arquivo GTFS antes de rodar o script.")
         print("")
         print("Exemplo no PowerShell:")
-        print(
-            '$env:PBH_GTFS_URL="https://s3.amazonaws.com/mobilibus-uploads/gtfs/GTFSBHTRANS.zip"'
-        )
+        print('$env:PBH_GTFS_URL="https://s3.amazonaws.com/mobilibus-uploads/gtfs/GTFSBHTRANS.zip"')
         return
 
     zip_file = raw_data_dir / "gtfs_pbh.zip"
