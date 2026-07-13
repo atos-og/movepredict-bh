@@ -20,7 +20,7 @@ export function MobileBottomNavigation({ active, onSelect }: MobileBottomNavigat
     <nav className="mobile-bottom-navigation" aria-label="Navegação principal">
       {items.map(({ id, label, icon: Icon }) => (
         <button key={id} className={active === id ? "active" : ""} onClick={() => onSelect(id)} aria-current={active === id ? "page" : undefined}>
-          <Icon size={19} />
+          <Icon size={21} strokeWidth={active === id ? 2.5 : 2} />
           <span>{label}</span>
         </button>
       ))}
