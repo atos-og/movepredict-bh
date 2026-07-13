@@ -17,7 +17,7 @@ export function useVehicles(routeId?: string, intervalMs = 20_000) {
       const response = await api.listVehicles(routeId);
       setVehicles(response.data);
       setMeta(response.meta);
-      setState(response.meta.stale ? (response.data.length ? "stale" : "empty") : "live");
+      setState(response.meta.status);
       setMessage(null);
     } catch (error) {
       setState("offline");
@@ -46,6 +46,7 @@ export function useVehicles(routeId?: string, intervalMs = 20_000) {
 
 export function useArrivals(stopId: string | null, intervalMs = 20_000) {
   const [arrivals, setArrivals] = useState<ArrivalPrediction[]>([]);
+  const [meta, setMeta] = useState<RealtimeMeta | null>(null);
   const [state, setState] = useState<RealtimeState>(stopId ? "loading" : "empty");
 
   const refresh = useCallback(async () => {
@@ -53,11 +54,8 @@ export function useArrivals(stopId: string | null, intervalMs = 20_000) {
     try {
       const response = await api.listArrivals(stopId);
       setArrivals(response.data);
-      setState(
-        response.meta.stale
-          ? response.data.length ? "stale" : "empty"
-          : response.data.length ? "live" : "empty",
-      );
+      setMeta(response.meta);
+      setState(response.meta.status);
     } catch {
       setState("offline");
     }
@@ -70,5 +68,5 @@ export function useArrivals(stopId: string | null, intervalMs = 20_000) {
     return () => { window.clearTimeout(initial); window.clearInterval(timer); };
   }, [intervalMs, refresh, stopId]);
 
-  return { arrivals, state, refresh };
+  return { arrivals, meta, state, refresh };
 }

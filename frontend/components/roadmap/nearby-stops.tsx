@@ -18,6 +18,7 @@ export function NearbyStops() {
   const [stops, setStops] = useState<Stop[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [selected, setSelected] = useState<Stop | null>(null);
+  const [routeLabels, setRouteLabels] = useState<Record<string, string>>({});
   const origin = geo.coordinates || PREVIEW_ORIGIN;
   const originLatitude = origin.latitude;
   const originLongitude = origin.longitude;
@@ -37,6 +38,26 @@ export function NearbyStops() {
       .catch(() => setLoadState("error"));
   }, [originLatitude, originLongitude]);
 
+  useEffect(() => {
+    const missingRouteIds = [...new Set(realtime.arrivals.map((arrival) => arrival.route_id))]
+      .filter((routeId) => !routeLabels[routeId]);
+    if (!missingRouteIds.length) return;
+    let active = true;
+    void Promise.allSettled(missingRouteIds.map((routeId) => api.getLine(routeId))).then((results) => {
+      if (!active) return;
+      setRouteLabels((current) => {
+        const next = { ...current };
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            next[missingRouteIds[index]] = result.value.data.route_short_name || missingRouteIds[index];
+          }
+        });
+        return next;
+      });
+    });
+    return () => { active = false; };
+  }, [realtime.arrivals, routeLabels]);
+
   return <main className="roadmap-page nearby-page">
     <AppHeader title="Pontos proximos" backHref="/" />
     <section className="nearby-content">
@@ -51,7 +72,7 @@ export function NearbyStops() {
         return <button className="nearby-stop-card" key={stop.stop_id} onClick={() => setSelected(stop)}><MapPin size={18} /><span><strong>{stop.stop_name}</strong><small>{Math.max(1, Math.round(meters / 80))} min a pe · {formatDistance(meters)}</small><em>Ver chegadas previstas</em></span><ChevronRight size={16} /></button>;
       })}</div>
     </section>
-    {selected && <section className="stop-arrivals-sheet" aria-live="polite"><header><span><strong>{selected.stop_name}</strong><small>Ponto {selected.stop_code || selected.stop_id}</small></span><button onClick={() => setSelected(null)} aria-label="Fechar previsoes"><X size={18} /></button></header>{realtime.state === "loading" && <p>Buscando previsoes...</p>}{realtime.state === "offline" && <p>Previsoes temporariamente indisponiveis.</p>}{realtime.state === "empty" && <p>Nenhuma previsao disponivel para este ponto agora.</p>}{realtime.state === "stale" && <p>Ultimas previsoes recebidas; os dados podem estar atrasados.</p>}<ol>{realtime.arrivals.map((arrival) => { const minutes = Math.max(0, Math.ceil((new Date(arrival.predicted_arrival).getTime() - new Date(arrival.generated_at).getTime()) / 60_000)); return <li key={`${arrival.vehicle_id}-${arrival.route_id}-${arrival.predicted_arrival}`}><strong>Linha {arrival.route_id}</strong><span>{minutes <= 1 ? "Chegando" : `${minutes} min`}</span></li>; })}</ol></section>}
+    {selected && <section className="stop-arrivals-sheet" aria-live="polite"><header><span><strong>{selected.stop_name}</strong><small>Ponto {selected.stop_code || selected.stop_id}</small></span><button onClick={() => setSelected(null)} aria-label="Fechar previsoes"><X size={18} /></button></header>{realtime.state === "loading" && <p>Buscando previsoes...</p>}{realtime.state === "offline" && <p>Previsoes temporariamente indisponiveis.</p>}{realtime.state === "empty" && <p>Nenhuma previsao disponivel para este ponto agora.</p>}{realtime.state === "stale" && <p>Ultimas previsoes recebidas; os dados podem estar atrasados.</p>}<ol>{realtime.arrivals.map((arrival) => { const referenceTime = realtime.meta?.generated_at || arrival.generated_at; const minutes = Math.max(0, Math.ceil((new Date(arrival.predicted_arrival).getTime() - new Date(referenceTime).getTime()) / 60_000)); return <li key={`${arrival.vehicle_id}-${arrival.route_id}-${arrival.predicted_arrival}`}><strong>Linha {routeLabels[arrival.route_id] || arrival.route_id}</strong><span>{minutes <= 1 ? "Chegando" : `${minutes} min`}</span></li>; })}</ol></section>}
     <RoadmapNavigation active="stops" />
   </main>;
 }

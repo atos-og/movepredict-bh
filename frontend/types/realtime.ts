@@ -26,6 +26,7 @@ export type ArrivalPrediction = {
 export type RealtimeMeta = {
   generated_at: string;
   count: number;
+  status: "live" | "empty" | "stale";
   stale: boolean;
   stale_after_seconds: number;
 };

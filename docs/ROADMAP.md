@@ -36,6 +36,8 @@
 ## Fase 5 - Entrega
 
 - [x] Preparar readiness, metricas, logs e smoke tests.
+- [x] Fechar contrato realtime e criterios minimos de lancamento.
+- [x] Preparar protocolos de soak test, campo e demonstracao.
 - [ ] Escolher provedores e orcamento.
 - [ ] Configurar secrets apenas no ambiente autorizado.
 - [ ] Executar testes de carga e auditoria final.
