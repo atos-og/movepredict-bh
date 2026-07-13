@@ -1,5 +1,8 @@
 # Contrato de entrega — dados, posições e ETA
 
+**Versao publica:** `v1`, fechada em 13/07/2026. Alteracoes futuras devem ser aditivas ou receber
+uma nova versao documentada.
+
 ## Fronteira de responsabilidade
 
 Esta entrega não altera routers, frontend, `VehiclePosition`, `ArrivalPrediction` nem os Protocols
@@ -44,6 +47,18 @@ predict_arrivals(
 - `uncertainty_seconds`: incerteza simétrica aproximada em segundos;
 - resultados ordenados por chegada prevista e filtrados a partir de `at`.
 
+## Envelope realtime
+
+Os endpoints retornam `data` e `meta`. `meta.status` e um enum fechado:
+
+- `live`: existe pelo menos um item dentro do limite de frescor;
+- `empty`: nao existe item aplicavel, sem evidencia de dado antigo descartado;
+- `stale`: a fonte possui dados, mas o item mais novo ultrapassou `stale_after_seconds`.
+
+`meta.count` sempre corresponde ao tamanho de `data`. `meta.stale` e verdadeiro somente quando
+`status` e `stale`. Falha de banco ou provider nao usa esses estados: responde HTTP 503 no envelope
+padrao de erro.
+
 ## Mapeamento de IDs
 
 | Origem | Campo externo | Persistência | Campo público | Regra |
@@ -83,6 +98,8 @@ GTFS; a chegada é rotulada por proximidade, baixa velocidade e aproximação ao
 
 Veja `docs/examples/vehicle-position.json`. Ele foi produzido pelo adaptador SQL a partir de uma
 posição oficial coletada em 11/07/2026. `trip_id` é nulo intencionalmente.
+`arrival-prediction.json` e um fixture de desenvolvimento e nao deve ser apresentado como medicao
+real. Uma previsao somente vira evidencia real depois de receber `actual_arrival` no banco.
 
 ## Critério de aceite
 

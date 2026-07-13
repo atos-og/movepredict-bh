@@ -17,7 +17,7 @@ export async function mockTransitApi(page: Page) {
     else if (url.pathname.endsWith("/stops") && url.pathname.startsWith("/lines/")) payload = { data: lineStops };
     else if (url.pathname.endsWith("/route")) payload = { data: { route_id: "989341", trip_id: "t1", direction_id: "0", geometry: { type: "LineString", coordinates: stops.map((stop) => [stop.stop_lon, stop.stop_lat]) } } };
     else if (url.pathname === "/stops") payload = { data: stops, meta: { total: 3, returned: 3, limit: 80, offset: 0 } };
-    else if (url.pathname.startsWith("/realtime/")) payload = { data: [], meta: { generated_at: "2026-07-12T12:00:00Z", count: 0, stale: true, stale_after_seconds: 120 } };
+    else if (url.pathname.startsWith("/realtime/")) payload = { data: [], meta: { generated_at: "2026-07-12T12:00:00Z", count: 0, status: "empty", stale: false, stale_after_seconds: 120 } };
     else payload = { error: { code: "not_found", message: "Fixture nao encontrada" } };
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
   });

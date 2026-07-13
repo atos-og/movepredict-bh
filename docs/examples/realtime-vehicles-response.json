@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "vehicle_id": "40556",
+      "route_id": "561974",
+      "trip_id": null,
+      "latitude": -19.946272,
+      "longitude": -44.009287,
+      "bearing": 257.0,
+      "speed_kmh": 0.0,
+      "observed_at": "2026-07-11T16:12:06Z",
+      "status": "stopped"
+    }
+  ],
+  "meta": {
+    "generated_at": "2026-07-11T16:12:10Z",
+    "count": 1,
+    "status": "live",
+    "stale": false,
+    "stale_after_seconds": 120
+  }
+}

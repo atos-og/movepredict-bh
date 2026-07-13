@@ -11,6 +11,16 @@ on:
         description: URL HTTPS do frontend de staging
         required: true
         type: string
+      duration_minutes:
+        description: Minutos de amostragem (0 executa somente uma vez)
+        required: true
+        default: 0
+        type: number
+      require_live_data:
+        description: Falhar se nenhuma amostra contiver veiculos ao vivo
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -18,15 +28,30 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Validate API liveness and readiness
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate application and collect evidence
+        env:
+          API_URL: ${{ inputs.api_url }}
+          WEB_URL: ${{ inputs.web_url }}
+          DURATION_MINUTES: ${{ inputs.duration_minutes }}
+          REQUIRE_LIVE_DATA: ${{ inputs.require_live_data }}
         run: |
-          curl --fail --silent --show-error --retry 3 "${{ inputs.api_url }}/health"
-          curl --fail --silent --show-error --retry 3 "${{ inputs.api_url }}/ready"
-      - name: Validate static and realtime contracts
-        run: |
-          curl --fail --silent --show-error --retry 3 "${{ inputs.api_url }}/lines?limit=1"
-          curl --fail --silent --show-error --retry 3 "${{ inputs.api_url }}/stops?limit=1"
-          curl --fail --silent --show-error --retry 3 "${{ inputs.api_url }}/realtime/vehicles?limit=1"
-      - name: Validate frontend
-        run: curl --fail --silent --show-error --retry 3 "${{ inputs.web_url }}" > /dev/null
+          live_flag=""
+          if [ "$REQUIRE_LIVE_DATA" = "true" ]; then live_flag="--require-live-data"; fi
+          python backend/scripts/validate_staging.py \
+            --api-url "$API_URL" \
+            --web-url "$WEB_URL" \
+            --duration-minutes "$DURATION_MINUTES" \
+            --output staging-validation.json \
+            $live_flag
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-validation
+          path: staging-validation.json
+          if-no-files-found: warn

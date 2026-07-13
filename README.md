@@ -110,6 +110,12 @@ Nenhuma configuração deste repositório publica serviços automaticamente. Con
 - [Decisões técnicas](docs/DECISIONS.md)
 - [Pipeline de dados e ETA](docs/DATA_PIPELINE.md)
 - [Contrato de entrega e mapeamento de IDs](docs/DELIVERY_CONTRACT.md)
+- [Validacao de staging](docs/STAGING_VALIDATION.md)
+- [Criterios de lancamento](docs/LAUNCH_CRITERIA.md)
+- [Teste de campo](docs/FIELD_TEST.md)
+- [Privacidade e dados](docs/PRIVACY_AND_DATA.md)
+- [Roteiro de demonstracao](docs/DEMO.md)
+- [Resultado da verificacao](docs/VERIFICATION.md)
 
 ## Integracao em tempo real
 

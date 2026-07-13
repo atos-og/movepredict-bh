@@ -30,6 +30,7 @@ class ArrivalPrediction(BaseModel):
 class RealtimeMeta(BaseModel):
     generated_at: datetime
     count: int = Field(ge=0)
+    status: Literal["live", "empty", "stale"]
     stale: bool = False
     stale_after_seconds: int = Field(ge=1)
 

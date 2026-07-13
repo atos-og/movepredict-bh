@@ -37,4 +37,6 @@ Isso permite trocar o adaptador GTFS local por consultas ao PostgreSQL sem alter
 
 - Dados GTFS não entram na imagem Docker; são montados como volume ou fornecidos por armazenamento externo.
 - A URL da API do frontend é definida no build por ser uma variável pública do Next.js.
-- O health check atual é de liveness. Readiness de banco será adicionada com o PostGIS.
+- `/health` cobre liveness e `/ready` verifica a conexao PostgreSQL/PostGIS.
+- O contrato realtime diferencia `live`, `empty` e `stale`; indisponibilidade da dependencia usa
+  erro HTTP 503 padronizado.

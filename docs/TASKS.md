@@ -9,6 +9,9 @@
 - [x] Conectar geocodificacao real configuravel.
 - [x] Adicionar readiness, metricas, logs e seguranca basica.
 - [x] Preparar smoke test manual de staging.
+- [x] Fechar contrato JSON com estados `live`, `empty` e `stale`.
+- [x] Automatizar coleta de evidencias de smoke/soak test.
+- [x] Preparar criterios de lancamento, teste de campo e demonstracao.
 - [ ] Escolher/provisionar motor de roteamento publico e credencial.
 - [ ] Validar staging depois da autorizacao de URLs e secrets.
 - [ ] Concluir testes de carga e auditoria com ambiente completo.
@@ -25,8 +28,13 @@
 
 ## Trabalho conjunto
 
+- [x] Fechar o contrato JSON de veiculos e previsoes.
+- [x] Definir criterios minimos iniciais para lancamento.
+- [x] Revisar no repositorio privacidade, termos da fonte e retencao.
+- [x] Preparar protocolos de staging, campo e demonstracao.
+- [ ] Validar endpoints publicados com payloads reais e guardar a evidencia.
 - [ ] Executar o sistema por periodo prolongado em staging.
 - [ ] Fazer teste de campo com linhas reais de Belo Horizonte.
-- [ ] Definir limiares minimos de qualidade do ETA.
-- [ ] Revisar privacidade, termos das fontes e politica de retencao.
+- [ ] Comparar previsoes com chegadas reais e aprovar os limiares finais.
+- [ ] Corrigir associacoes ou apresentacoes identificadas pela amostra real.
 - [ ] Aprovar demonstracao publica e versao de producao.

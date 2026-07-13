@@ -30,18 +30,17 @@ def list_current_vehicles(
 ) -> VehiclePositionResponse:
     now = datetime.now(UTC)
     cutoff = now - timedelta(seconds=max_age_seconds)
-    positions = [
-        position
-        for position in provider.list_current_positions(route_id)
-        if position.observed_at >= cutoff
-    ][:limit]
-    newest = max((position.observed_at for position in positions), default=None)
+    candidates = provider.list_current_positions(route_id)
+    newest = max((position.observed_at for position in candidates), default=None)
+    positions = [position for position in candidates if position.observed_at >= cutoff][:limit]
+    status = "stale" if newest is not None and newest < cutoff else "live" if positions else "empty"
     return VehiclePositionResponse(
         data=positions,
         meta=RealtimeMeta(
             generated_at=now,
             count=len(positions),
-            stale=newest is None or newest < cutoff,
+            status=status,
+            stale=status == "stale",
             stale_after_seconds=max_age_seconds,
         ),
     )
@@ -62,12 +61,20 @@ def list_stop_arrivals(
     now = datetime.now(UTC)
     predictions = provider.predict_arrivals(stop_id, route_id=route_id, at=now)[:limit]
     newest = max((prediction.generated_at for prediction in predictions), default=None)
+    status = (
+        "stale"
+        if newest is not None and newest < now - timedelta(seconds=max_age_seconds)
+        else "live"
+        if predictions
+        else "empty"
+    )
     return ArrivalPredictionResponse(
         data=predictions,
         meta=RealtimeMeta(
             generated_at=now,
             count=len(predictions),
-            stale=newest is None or newest < now - timedelta(seconds=max_age_seconds),
+            status=status,
+            stale=status == "stale",
             stale_after_seconds=max_age_seconds,
         ),
     )

@@ -54,6 +54,10 @@ Retorna previsoes futuras ordenadas por horario. Parametros: `route_id`, `limit`
 `max_age_seconds`. `meta.stale` impede que uma previsao antiga seja apresentada como atual.
 
 Uma lista vazia e uma resposta valida quando nao ha veiculos recentes ou previsoes futuras.
+`meta.status` possui contrato fechado: `live` indica dados atuais, `empty` indica que a fonte nao
+retornou itens aplicaveis e `stale` indica que havia dados, mas eles ultrapassaram o limite de
+frescor. `meta.stale` permanece como atalho booleano compativel e equivale a
+`meta.status == "stale"`.
 
 ## Erros
 

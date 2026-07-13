@@ -165,9 +165,53 @@ def test_realtime_endpoints_expose_provider_data(gtfs_dir: Path) -> None:
 
     assert vehicles.status_code == 200
     assert vehicles.json()["data"][0]["vehicle_id"] == "bus-1"
+    assert vehicles.json()["meta"]["status"] == "live"
     assert vehicles.json()["meta"]["stale"] is False
     assert arrivals.status_code == 200
     assert arrivals.json()["data"][0]["vehicle_id"] == "bus-1"
+    assert arrivals.json()["meta"]["status"] == "live"
+
+
+def test_realtime_contract_distinguishes_empty_and_stale(gtfs_dir: Path) -> None:
+    now = datetime.now(UTC)
+
+    class EmptyVehicleProvider:
+        def list_current_positions(self, route_id: str | None = None):
+            return []
+
+    class StaleVehicleProvider:
+        def list_current_positions(self, route_id: str | None = None):
+            return [
+                VehiclePosition(
+                    vehicle_id="bus-old",
+                    route_id="r1",
+                    latitude=-19.92,
+                    longitude=-43.94,
+                    observed_at=now - timedelta(minutes=10),
+                )
+            ]
+
+    application = create_app()
+    application.dependency_overrides[get_gtfs_service] = lambda: GtfsService(gtfs_dir)
+    application.dependency_overrides[get_vehicle_position_provider] = EmptyVehicleProvider
+    with TestClient(application) as realtime_client:
+        empty = realtime_client.get("/realtime/vehicles")
+
+    application.dependency_overrides[get_vehicle_position_provider] = StaleVehicleProvider
+    with TestClient(application) as realtime_client:
+        stale = realtime_client.get("/realtime/vehicles")
+
+    empty_meta = empty.json()["meta"]
+    assert empty_meta["generated_at"]
+    assert {key: value for key, value in empty_meta.items() if key != "generated_at"} == {
+        "count": 0,
+        "status": "empty",
+        "stale": False,
+        "stale_after_seconds": 120,
+    }
+    assert stale.json()["data"] == []
+    assert stale.json()["meta"]["status"] == "stale"
+    assert stale.json()["meta"]["stale"] is True
 
 
 def test_metrics_are_exposed(client: TestClient) -> None:
