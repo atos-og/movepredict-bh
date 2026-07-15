@@ -5,9 +5,10 @@ Gerado em `2026-07-15T00:55:58.094674+00:00` para a janela de 7 dias.
 ## Coleta
 
 - ciclos: 3232 (3223 sucessos, 9 falhas);
-- disponibilidade observada: 99.72%;
+- sucesso dos ciclos executados: 99.72%;
+- disponibilidade temporal observada: 10.82%;
 - gaps operacionais: 23;
-- indisponibilidade estimada: 224988 s;
+- indisponibilidade estimada: 539351 s;
 - lag médio/máximo da fonte: 0.01 / 10.91 s;
 - erros de parse: 0; duplicatas: 80.19%.
 
@@ -19,6 +20,7 @@ Gerado em `2026-07-15T00:55:58.094674+00:00` para a janela de 7 dias.
 - veículos com última posição associada: 90/2669 (3.37%);
 - posições ainda não avaliadas: 9507728;
 - atrasadas >90 s: 323492; fora do envelope de BH: 4104.
+- posições mais de 5 min no futuro: 176027.
 
 ## ETA
 
@@ -45,5 +47,7 @@ Gerado em `2026-07-15T00:55:58.094674+00:00` para a janela de 7 dias.
 ## Limitações
 
 - Taxas descrevem somente a janela coletada; períodos sem processo ativo aparecem como gaps.
+- Este snapshot antecede a priorização da posição mais recente por veículo e deve ser regenerado
+  após uma nova janela de coleta.
 - MAE e percentis só devem ser publicados quando labeled_predictions for suficiente.
 - Validação de campo exige observação humana e não é inferida automaticamente.

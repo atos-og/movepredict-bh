@@ -116,6 +116,7 @@ class VehiclePosition(Base):
     shape_progress: Mapped[float | None] = mapped_column(Float)
     trip_match_confidence: Mapped[float | None] = mapped_column(Float)
     trip_match_method: Mapped[str | None] = mapped_column(String(50))
+    arrival_detection_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         CheckConstraint("latitude BETWEEN -90 AND 90", name="ck_position_latitude"),
@@ -259,7 +260,9 @@ class ArrivalEvent(Base):
     route_id: Mapped[int] = mapped_column(ForeignKey("transit_routes.id"), index=True)
     trip_id: Mapped[int] = mapped_column(ForeignKey("transit_trips.id"), index=True)
     stop_id: Mapped[int] = mapped_column(ForeignKey("transit_stops.id"), index=True)
-    position_id: Mapped[int] = mapped_column(ForeignKey("vehicle_positions.id"), unique=True)
+    position_id: Mapped[int] = mapped_column(
+        ForeignKey("vehicle_positions.id", ondelete="CASCADE"), unique=True
+    )
     service_date: Mapped[date] = mapped_column(Date, index=True)
     arrived_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     distance_to_stop_meters: Mapped[float] = mapped_column(Float)

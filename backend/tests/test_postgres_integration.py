@@ -100,17 +100,29 @@ def test_persistence_deduplication_disappearance_and_provider_contract(
     assert positions[0].route_id == "r1"
 
     vehicle = postgres_session.get(Vehicle, 1)
-    postgres_session.add(
-        ArrivalPrediction(
-            stop_id=stop.id,
-            route_id=route.id,
-            trip_id=None,
-            vehicle_id=vehicle.id,
-            generated_at=observed,
-            predicted_arrival=observed + timedelta(minutes=5),
-            uncertainty_seconds=90,
-            model_version="baseline-schedule-v1",
-        )
+    postgres_session.add_all(
+        [
+            ArrivalPrediction(
+                stop_id=stop.id,
+                route_id=route.id,
+                trip_id=None,
+                vehicle_id=vehicle.id,
+                generated_at=observed,
+                predicted_arrival=observed + timedelta(minutes=5),
+                uncertainty_seconds=90,
+                model_version="baseline-schedule-v1",
+            ),
+            ArrivalPrediction(
+                stop_id=stop.id,
+                route_id=route.id,
+                trip_id=None,
+                vehicle_id=vehicle.id,
+                generated_at=observed + timedelta(minutes=1),
+                predicted_arrival=observed + timedelta(minutes=4),
+                uncertainty_seconds=60,
+                model_version="baseline-schedule-v1",
+            ),
+        ]
     )
     postgres_session.commit()
     arrival_provider: ArrivalPredictionProvider = SqlArrivalPredictionProvider(postgres_session)
@@ -119,6 +131,11 @@ def test_persistence_deduplication_disappearance_and_provider_contract(
     assert isinstance(predictions[0], ArrivalPredictionSchema)
     assert predictions[0].vehicle_id == "bus-1"
     assert predictions[0].route_id == "r1"
+    assert predictions[0].generated_at == observed + timedelta(minutes=1)
+    current_prediction_count = postgres_session.scalar(
+        text("SELECT count(*) FROM current_arrival_predictions WHERE stop_id = 's1'")
+    )
+    assert current_prediction_count == 1
 
     application = create_app()
     application.dependency_overrides[get_db] = lambda: postgres_session
@@ -212,7 +229,12 @@ def test_trip_matching_prediction_and_arrival_detection(postgres_session: Sessio
     observed = datetime(2026, 7, 11, 15, tzinfo=UTC)
     persist_snapshot(
         postgres_session,
-        [_position_at("bus-1", observed, longitude=-43.939, speed_kmh=18)],
+        [
+            _position_at(
+                "bus-1", observed - timedelta(minutes=1), longitude=-43.9395, speed_kmh=18
+            ),
+            _position_at("bus-1", observed, longitude=-43.939, speed_kmh=18),
+        ],
         ingested_at=observed,
     )
     postgres_session.commit()
@@ -223,6 +245,13 @@ def test_trip_matching_prediction_and_arrival_detection(postgres_session: Sessio
         select(ArrivalPrediction).where(ArrivalPrediction.model_version == MODEL_VERSION)
     )
     assert matched.matched == 1
+    assert matched.inspected == 1
+    older_position = postgres_session.scalar(
+        select(VehiclePosition).where(
+            VehiclePosition.observed_at == observed - timedelta(minutes=1)
+        )
+    )
+    assert older_position.trip_match_method is None
     assert generated.predictions == 1
     assert prediction is not None
     assert prediction.stop_id == next_stop.id
@@ -251,10 +280,24 @@ def test_trip_matching_prediction_and_arrival_detection(postgres_session: Sessio
     postgres_session.commit()
 
     detected = detect_arrivals(postgres_session)
+    repeated = detect_arrivals(postgres_session)
     postgres_session.refresh(prediction)
     assert detected.detected == 1
     assert detected.predictions_labeled == 1
+    assert repeated.inspected == 0
     assert prediction.actual_arrival == observed + timedelta(minutes=3)
+
+    arrival_position_id = postgres_session.scalar(
+        select(VehiclePosition.id).where(
+            VehiclePosition.observed_at == observed + timedelta(minutes=3)
+        )
+    )
+    postgres_session.execute(
+        text("DELETE FROM vehicle_positions WHERE id = :position_id"),
+        {"position_id": arrival_position_id},
+    )
+    postgres_session.commit()
+    assert postgres_session.scalar(text("SELECT count(*) FROM arrival_events")) == 0
 
 
 def _position(vehicle_id: str, observed_at: datetime, line_code: str) -> PbhVehiclePosition:

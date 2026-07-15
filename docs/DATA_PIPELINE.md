@@ -41,6 +41,11 @@ após `-` e zeros à esquerda. Correspondências ambíguas permanecem nulas. O c
 um `trip_id` inexistente na fonte. O estágio de associação cruza linha, sentido, calendário, janela
 de horário e proximidade ao shape, persistindo método e confiança e rejeitando casos ambíguos.
 
+O ciclo online prioriza a posição ainda não avaliada mais recente de cada veículo, evitando que o
+volume histórico impeça o matching dos veículos ativos. O backfill usa lotes históricos separados.
+Cada posição elegível para detecção de chegada recebe `arrival_detection_checked_at`, inclusive
+quando não representa uma chegada, para impedir starvation por reavaliação infinita.
+
 ## Banco e migrações
 
 PostgreSQL 17 com PostGIS 3.5 é obrigatório. Pontos e posições possuem coluna `geography(Point,4326)`
@@ -100,6 +105,7 @@ erro médio antes de coletar chegadas reais suficientes e separar avaliação te
 - BRIN reduz o custo de varreduras temporais; particionamento mensal deve ser ativado antes de a
   tabela ultrapassar dezenas de milhões de posições ou quando a remoção em lotes afetar o autovacuum.
 - Cada coleta persiste tentativas, status HTTP, contagens, lag, duração, erros e desaparecimentos.
+- Posições mais de cinco minutos no futuro são rejeitadas e contabilizadas como erro de parse.
 - Cada ciclo emite log JSON com contagens de coleta, matching, chegadas e previsões.
 - `pipeline_runs` persiste as mesmas contagens e falhas para auditoria após reinícios.
 - `current_vehicle_positions` e `current_arrival_predictions` são views SQL estáveis; exemplos estão

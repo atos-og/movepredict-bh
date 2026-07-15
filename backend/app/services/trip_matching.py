@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.models import VehiclePosition
@@ -34,18 +34,31 @@ def match_unassigned_positions(
     max_schedule_delta_seconds: int = 90 * 60,
     min_confidence: float = 0.45,
     min_margin: float = 0.025,
+    latest_per_vehicle: bool = True,
 ) -> MatchBatchResult:
-    positions = list(
-        session.scalars(
-            select(VehiclePosition)
-            .where(
-                VehiclePosition.trip_id.is_(None),
-                VehiclePosition.route_id.is_not(None),
-                VehiclePosition.trip_match_method.is_(None),
+    filters = (
+        VehiclePosition.trip_id.is_(None),
+        VehiclePosition.route_id.is_not(None),
+        VehiclePosition.trip_match_method.is_(None),
+    )
+    statement = select(VehiclePosition).where(*filters)
+    if latest_per_vehicle:
+        latest = (
+            select(
+                VehiclePosition.vehicle_id,
+                func.max(VehiclePosition.observed_at).label("observed_at"),
             )
-            .order_by(VehiclePosition.observed_at.desc())
-            .limit(limit)
+            .where(*filters)
+            .group_by(VehiclePosition.vehicle_id)
+            .subquery()
         )
+        statement = select(VehiclePosition).join(
+            latest,
+            (latest.c.vehicle_id == VehiclePosition.vehicle_id)
+            & (latest.c.observed_at == VehiclePosition.observed_at),
+        )
+    positions = list(
+        session.scalars(statement.order_by(VehiclePosition.observed_at.desc()).limit(limit))
     )
     matched = no_candidate = ambiguous = 0
     for position in positions:

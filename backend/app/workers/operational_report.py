@@ -39,7 +39,7 @@ def build_report(*, days: int = 7, expected_interval_seconds: int = 20) -> dict:
                     count(*) FILTER (WHERE gap > make_interval(secs => :gap_threshold)) AS gaps,
                     coalesce(sum(extract(epoch FROM gap) - :expected_interval)
                         FILTER (WHERE gap > make_interval(secs => :gap_threshold)), 0)
-                        AS estimated_downtime_seconds
+                        AS interior_downtime_seconds
                 FROM ordered
                 """
                 ),
@@ -204,9 +204,18 @@ def build_report(*, days: int = 7, expected_interval_seconds: int = 20) -> dict:
 
     collection_dict = _jsonable(collection)
     cycles = collection_dict["cycles"]
-    collection_dict["success_rate"] = (
+    collection_dict["cycle_success_rate"] = (
         collection_dict["successful_cycles"] / cycles if cycles else None
     )
+    downtime, availability = _availability_metrics(
+        start=start,
+        end=end,
+        first_cycle=collection["first_cycle"],
+        last_cycle=collection["last_cycle"],
+        interior_downtime_seconds=float(collection_dict.pop("interior_downtime_seconds") or 0),
+    )
+    collection_dict["estimated_downtime_seconds"] = downtime
+    collection_dict["availability_rate"] = availability
     fetched = collection_dict["fetched"]
     collection_dict["duplicate_rate"] = collection_dict["duplicates"] / fetched if fetched else None
     report = {
@@ -236,6 +245,28 @@ def _with_rates(values: dict) -> dict:
             if key in values:
                 values[f"{key}_rate"] = values[key] / total
     return values
+
+
+def _availability_metrics(
+    *,
+    start: datetime,
+    end: datetime,
+    first_cycle: datetime | None,
+    last_cycle: datetime | None,
+    interior_downtime_seconds: float,
+) -> tuple[float, float]:
+    window_seconds = max(0.0, (end - start).total_seconds())
+    if window_seconds == 0:
+        return 0.0, 0.0
+    if first_cycle is None or last_cycle is None:
+        return window_seconds, 0.0
+    leading_gap = max(0.0, (first_cycle - start).total_seconds())
+    trailing_gap = max(0.0, (end - last_cycle).total_seconds())
+    downtime = min(
+        window_seconds,
+        leading_gap + max(0.0, interior_downtime_seconds) + trailing_gap,
+    )
+    return downtime, max(0.0, 1 - downtime / window_seconds)
 
 
 def _vehicle_rates(values: dict) -> dict:
@@ -272,7 +303,8 @@ def render_markdown(report: dict) -> str:
         "",
         f"- ciclos: {collection['cycles']} ({collection['successful_cycles']} sucessos, "
         f"{collection['failed_cycles']} falhas);",
-        f"- disponibilidade observada: {_percent(collection['success_rate'])};",
+        f"- sucesso dos ciclos executados: {_percent(collection['cycle_success_rate'])};",
+        f"- disponibilidade temporal observada: {_percent(collection['availability_rate'])};",
         f"- gaps operacionais: {collection['gaps']};",
         f"- indisponibilidade estimada: {round(collection['estimated_downtime_seconds'])} s;",
         f"- lag médio/máximo da fonte: {_number(collection['avg_source_lag_seconds'])} / "
@@ -290,6 +322,7 @@ def render_markdown(report: dict) -> str:
         f"- posições ainda não avaliadas: {positions['trip_not_evaluated']};",
         f"- atrasadas >90 s: {positions['delayed_positions']}; fora do envelope de BH: "
         f"{positions['outside_bh_bounds']}.",
+        f"- posições mais de 5 min no futuro: {positions['future_positions']}.",
         "",
         "## ETA",
         "",

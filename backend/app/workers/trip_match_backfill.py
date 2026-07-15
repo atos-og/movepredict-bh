@@ -36,7 +36,9 @@ def backfill(*, hours: int, limit_total: int, batch_size: int) -> dict:
         inspected = matched = no_candidate = ambiguous = 0
         while inspected < limit_total:
             result = match_unassigned_positions(
-                session, limit=min(batch_size, limit_total - inspected)
+                session,
+                limit=min(batch_size, limit_total - inspected),
+                latest_per_vehicle=False,
             )
             if result.inspected == 0:
                 break

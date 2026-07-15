@@ -103,6 +103,28 @@ def test_realtime_client_retries_transient_failure() -> None:
     assert calls == 2
 
 
+def test_realtime_client_rejects_positions_too_far_in_the_future() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            request=request,
+            json=[
+                {
+                    "EV": "105",
+                    "HR": "20990101120000",
+                    "LT": "-19.9",
+                    "LG": "-43.9",
+                    "NV": "future-bus",
+                }
+            ],
+        )
+
+    client = PbhRealtimeClient("https://example.test/feed", transport=httpx.MockTransport(handler))
+
+    assert client.fetch_positions() == []
+    assert client.last_parse_error_count == 1
+
+
 def test_schedule_baseline_and_temporal_evaluation() -> None:
     assert scheduled_datetime_utc(date(2026, 7, 11), 25 * 3600) == datetime(
         2026, 7, 12, 4, tzinfo=UTC

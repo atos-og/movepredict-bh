@@ -65,3 +65,5 @@ cd backend
 
 O relatório mede ciclos, falhas, gaps, lag, duplicação, posições inválidas, cobertura de linha e
 viagem, previsões rotuladas e tamanho das tabelas. Ele não inventa MAE quando a amostra é vazia.
+Taxa de sucesso considera somente ciclos executados; disponibilidade temporal também inclui gaps
+internos e as bordas da janela solicitada. Os dois números nunca devem ser apresentados como iguais.
