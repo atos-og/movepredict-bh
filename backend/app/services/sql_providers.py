@@ -81,6 +81,25 @@ class SqlArrivalPredictionProvider:
         at: datetime | None = None,
     ) -> list[ArrivalPrediction]:
         at = (at or datetime.now(UTC)).astimezone(UTC)
+        ranked = (
+            select(
+                ArrivalPredictionRecord.id.label("prediction_id"),
+                func.row_number()
+                .over(
+                    partition_by=(
+                        ArrivalPredictionRecord.stop_id,
+                        ArrivalPredictionRecord.route_id,
+                        ArrivalPredictionRecord.trip_id,
+                        ArrivalPredictionRecord.vehicle_id,
+                        ArrivalPredictionRecord.model_version,
+                    ),
+                    order_by=ArrivalPredictionRecord.generated_at.desc(),
+                )
+                .label("recency"),
+            )
+            .where(ArrivalPredictionRecord.predicted_arrival >= at)
+            .subquery()
+        )
         statement = (
             select(
                 ArrivalPredictionRecord,
@@ -89,13 +108,14 @@ class SqlArrivalPredictionProvider:
                 TransitTrip,
                 Vehicle,
             )
+            .join(ranked, ranked.c.prediction_id == ArrivalPredictionRecord.id)
             .join(TransitStop, TransitStop.id == ArrivalPredictionRecord.stop_id)
             .join(TransitRoute, TransitRoute.id == ArrivalPredictionRecord.route_id)
             .outerjoin(TransitTrip, TransitTrip.id == ArrivalPredictionRecord.trip_id)
             .outerjoin(Vehicle, Vehicle.id == ArrivalPredictionRecord.vehicle_id)
             .where(
                 TransitStop.gtfs_stop_id == stop_id,
-                ArrivalPredictionRecord.predicted_arrival >= at,
+                ranked.c.recency == 1,
             )
             .order_by(ArrivalPredictionRecord.predicted_arrival)
         )

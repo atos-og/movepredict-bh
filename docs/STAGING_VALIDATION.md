@@ -50,3 +50,20 @@ como artefato. Janelas maiores devem rodar em uma maquina de operacao ou runner 
 - horario, versao/commit e configuracao nao secreta do teste.
 
 Sem URL de staging provisionada, esta etapa permanece preparada, mas nao executada.
+
+## Relatório operacional local
+
+O histórico PostgreSQL pode ser auditado sem acessar credenciais externas:
+
+```bash
+cd backend
+.venv/bin/python -m app.workers.operational_report \
+  --days 7 \
+  --json-output ../docs/reports/realtime-quality.json \
+  --markdown-output ../docs/reports/realtime-quality.md
+```
+
+O relatório mede ciclos, falhas, gaps, lag, duplicação, posições inválidas, cobertura de linha e
+viagem, previsões rotuladas e tamanho das tabelas. Ele não inventa MAE quando a amostra é vazia.
+Taxa de sucesso considera somente ciclos executados; disponibilidade temporal também inclui gaps
+internos e as bordas da janela solicitada. Os dois números nunca devem ser apresentados como iguais.

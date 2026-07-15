@@ -4,7 +4,8 @@ from datetime import timedelta
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
-from app.models import ArrivalPrediction, Vehicle, VehiclePosition
+from app.models import ArrivalPrediction, RouteHourSpeedStat, Vehicle, VehiclePosition
+from app.services.eta import SAO_PAULO
 
 MODEL_VERSION = "baseline-shape-speed-v1"
 
@@ -13,6 +14,16 @@ MODEL_VERSION = "baseline-shape-speed-v1"
 class PredictionGenerationResult:
     vehicles: int
     predictions: int
+    realtime_speed: int = 0
+    historical_speed: int = 0
+    fallback_speed: int = 0
+
+
+@dataclass(frozen=True)
+class SpeedEstimate:
+    speed_kmh: float
+    basis: str
+    sample_size: int
 
 
 def generate_predictions(
@@ -42,15 +53,20 @@ def generate_predictions(
             .where(Vehicle.is_active.is_(True), VehiclePosition.shape_progress.is_not(None))
         )
     )
-    created = 0
-    route_speeds: dict[int, float] = {}
+    created = realtime_count = historical_count = fallback_count = 0
+    route_speeds = _historical_speed_cache(session, positions)
     for position in positions:
-        speed = position.speed_kmh if position.speed_kmh and position.speed_kmh >= 5 else None
-        if speed is None:
-            speed = route_speeds.get(position.route_id)
-            if speed is None:
-                speed = _recent_route_speed(session, position.route_id) or fallback_speed_kmh
-                route_speeds[position.route_id] = speed
+        estimate = _speed_estimate(
+            position,
+            route_speeds,
+            fallback_speed_kmh=fallback_speed_kmh,
+        )
+        if estimate.basis == "realtime-speed":
+            realtime_count += 1
+        elif estimate.basis == "historical-route-hour":
+            historical_count += 1
+        else:
+            fallback_count += 1
         for stop in _upcoming_stops(session, position, stops_per_vehicle):
             exists = session.scalar(
                 select(ArrivalPrediction.id).where(
@@ -63,8 +79,11 @@ def generate_predictions(
             if exists:
                 continue
             distance = max(0.0, stop["distance_meters"])
-            seconds = round(distance / (speed / 3.6))
-            uncertainty = max(60, round(seconds * 0.35))
+            seconds = round(distance / (estimate.speed_kmh / 3.6))
+            uncertainty_factor = 0.35 if estimate.basis == "realtime-speed" else 0.5
+            if estimate.basis == "fixed-insufficient-history":
+                uncertainty_factor = 0.75
+            uncertainty = max(60, round(seconds * uncertainty_factor))
             session.add(
                 ArrivalPrediction(
                     stop_id=stop["stop_id"],
@@ -76,11 +95,16 @@ def generate_predictions(
                     distance_to_stop_meters=distance,
                     uncertainty_seconds=uncertainty,
                     model_version=MODEL_VERSION,
+                    prediction_basis=estimate.basis,
+                    sample_size=estimate.sample_size,
+                    horizon_seconds=seconds,
                 )
             )
             created += 1
     session.commit()
-    return PredictionGenerationResult(len(positions), created)
+    return PredictionGenerationResult(
+        len(positions), created, realtime_count, historical_count, fallback_count
+    )
 
 
 def _upcoming_stops(session: Session, position: VehiclePosition, limit: int):
@@ -104,11 +128,38 @@ def _upcoming_stops(session: Session, position: VehiclePosition, limit: int):
     ).mappings()
 
 
-def _recent_route_speed(session: Session, route_id: int) -> float | None:
-    return session.scalar(
-        select(func.avg(VehiclePosition.speed_kmh)).where(
-            VehiclePosition.route_id == route_id,
-            VehiclePosition.speed_kmh >= 5,
-            VehiclePosition.observed_at >= func.now() - timedelta(minutes=30),
-        )
+def _speed_estimate(
+    position: VehiclePosition,
+    cache: dict[tuple[int, int], SpeedEstimate],
+    *,
+    fallback_speed_kmh: float,
+) -> SpeedEstimate:
+    if position.speed_kmh and position.speed_kmh >= 5:
+        return SpeedEstimate(position.speed_kmh, "realtime-speed", 1)
+    local_hour = position.observed_at.astimezone(SAO_PAULO).hour
+    key = (position.route_id, local_hour)
+    historical = cache.get(key)
+    if historical and historical.sample_size >= 30:
+        return historical
+    return SpeedEstimate(
+        fallback_speed_kmh,
+        "fixed-insufficient-history",
+        historical.sample_size if historical else 0,
     )
+
+
+def _historical_speed_cache(
+    session: Session, positions: list[VehiclePosition]
+) -> dict[tuple[int, int], SpeedEstimate]:
+    if not positions:
+        return {}
+    route_ids = {position.route_id for position in positions if position.route_id is not None}
+    rows = session.execute(
+        select(RouteHourSpeedStat).where(RouteHourSpeedStat.route_id.in_(route_ids))
+    ).scalars()
+    return {
+        (row.route_id, row.local_hour): SpeedEstimate(
+            row.average_speed_kmh, "historical-route-hour", row.sample_size
+        )
+        for row in rows
+    }

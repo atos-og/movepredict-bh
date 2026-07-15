@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.models import VehiclePosition
@@ -31,21 +31,34 @@ def match_unassigned_positions(
     *,
     limit: int = 2_000,
     max_shape_distance_meters: float = 500,
-    max_schedule_delta_seconds: int = 3 * 3600,
+    max_schedule_delta_seconds: int = 90 * 60,
     min_confidence: float = 0.45,
-    min_margin: float = 0.05,
+    min_margin: float = 0.025,
+    latest_per_vehicle: bool = True,
 ) -> MatchBatchResult:
-    positions = list(
-        session.scalars(
-            select(VehiclePosition)
-            .where(
-                VehiclePosition.trip_id.is_(None),
-                VehiclePosition.route_id.is_not(None),
-                VehiclePosition.trip_match_method.is_(None),
+    filters = (
+        VehiclePosition.trip_id.is_(None),
+        VehiclePosition.route_id.is_not(None),
+        VehiclePosition.trip_match_method.is_(None),
+    )
+    statement = select(VehiclePosition).where(*filters)
+    if latest_per_vehicle:
+        latest = (
+            select(
+                VehiclePosition.vehicle_id,
+                func.max(VehiclePosition.observed_at).label("observed_at"),
             )
-            .order_by(VehiclePosition.observed_at.desc())
-            .limit(limit)
+            .where(*filters)
+            .group_by(VehiclePosition.vehicle_id)
+            .subquery()
         )
+        statement = select(VehiclePosition).join(
+            latest,
+            (latest.c.vehicle_id == VehiclePosition.vehicle_id)
+            & (latest.c.observed_at == VehiclePosition.observed_at),
+        )
+    positions = list(
+        session.scalars(statement.order_by(VehiclePosition.observed_at.desc()).limit(limit))
     )
     matched = no_candidate = ambiguous = 0
     for position in positions:
@@ -135,11 +148,12 @@ def _candidate_rows(
     direction_filter = "" if direction_id is None else "AND t.direction_id = :direction_id"
     statement = text(
         f"""
-        WITH candidate AS (
+        WITH spatial AS (
             SELECT
                 t.id AS trip_id,
                 t.gtfs_trip_id,
-                ABS(t.start_time_seconds - :service_seconds)::integer AS schedule_delta_seconds,
+                t.start_time_seconds,
+                t.end_time_seconds,
                 ST_Distance(
                     sh.path::geography,
                     ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
@@ -153,7 +167,7 @@ def _candidate_rows(
             WHERE t.route_id = :route_id
               {direction_filter}
               AND t.start_time_seconds IS NOT NULL
-              AND ABS(t.start_time_seconds - :service_seconds) <= :max_schedule_delta
+              AND t.end_time_seconds IS NOT NULL
               AND (
                     EXISTS (
                         SELECT 1 FROM service_exceptions AS se
@@ -176,9 +190,24 @@ def _candidate_rows(
                         )
                     )
               )
+        ), candidate AS (
+            SELECT
+                trip_id,
+                gtfs_trip_id,
+                shape_distance_meters,
+                shape_progress,
+                ABS(
+                    round(
+                        start_time_seconds
+                        + shape_progress * (end_time_seconds - start_time_seconds)
+                    )
+                    - :service_seconds
+                )::integer AS schedule_delta_seconds
+            FROM spatial
+            WHERE shape_distance_meters <= :max_shape_distance
         )
         SELECT * FROM candidate
-        WHERE shape_distance_meters <= :max_shape_distance
+        WHERE schedule_delta_seconds <= :max_schedule_delta
         ORDER BY shape_distance_meters, schedule_delta_seconds
         LIMIT 8
         """
@@ -206,7 +235,7 @@ def _confidence(
 ) -> float:
     spatial = max(0.0, 1 - shape_distance / max_shape_distance)
     temporal = max(0.0, 1 - schedule_delta / max_schedule_delta)
-    return round(spatial * 0.65 + temporal * 0.35, 6)
+    return round(spatial * 0.5 + temporal * 0.5, 6)
 
 
 def _seconds_since_midnight(value: datetime) -> int:

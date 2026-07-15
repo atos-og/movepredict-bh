@@ -24,7 +24,9 @@
 - [x] Associar posicoes a viagens GTFS.
 - [x] Gerar e rotular previsoes de chegada.
 - [x] Criar avaliador temporal.
-- [ ] Coletar amostra suficiente e publicar metricas de ETA.
+- [x] Persistir métricas operacionais e disponibilizar relatório de qualidade/banco.
+- [x] Priorizar matching online por veículo e impedir starvation da detecção de chegada.
+- [ ] Coletar amostra suficiente e publicar métricas de ETA por linha, horário e horizonte.
 
 ## Trabalho conjunto
 
@@ -37,4 +39,5 @@
 - [ ] Fazer teste de campo com linhas reais de Belo Horizonte.
 - [ ] Comparar previsoes com chegadas reais e aprovar os limiares finais.
 - [ ] Corrigir associacoes ou apresentacoes identificadas pela amostra real.
+- [ ] Regenerar o relatório operacional após 24 horas com o pipeline corrigido.
 - [ ] Aprovar demonstracao publica e versao de producao.

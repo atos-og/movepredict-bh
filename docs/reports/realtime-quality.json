@@ -1,0 +1,335 @@
+{
+  "generated_at": "2026-07-15T00:55:58.094674+00:00",
+  "window": {
+    "start": "2026-07-08T00:55:58.094674+00:00",
+    "end": "2026-07-15T00:55:58.094674+00:00",
+    "days": 7
+  },
+  "collection": {
+    "cycles": 3232,
+    "successful_cycles": 3223,
+    "failed_cycles": 9,
+    "first_cycle": "2026-07-11T16:15:01.864506+00:00",
+    "last_cycle": "2026-07-15T00:55:38.504552+00:00",
+    "parse_errors": 0,
+    "fetched": 51774991,
+    "inserted": 10257252,
+    "duplicates": 41517739,
+    "unmatched_routes": 218839,
+    "avg_source_lag_seconds": 0.013583746199193298,
+    "max_source_lag_seconds": 10.905007,
+    "avg_duration_ms": 8509.87752869129,
+    "gaps": 23,
+    "estimated_downtime_seconds": 539351.471802,
+    "cycle_success_rate": 0.9972153465346535,
+    "availability_rate": 0.10821515905753953,
+    "duplicate_rate": 0.801887903756468
+  },
+  "positions": {
+    "positions": 10257241,
+    "vehicles": 2669,
+    "route_mapped": 10038402,
+    "trip_matched": 1738,
+    "trip_ambiguous": 205,
+    "trip_no_candidate": 747571,
+    "trip_not_evaluated": 9507728,
+    "delayed_positions": 323492,
+    "future_positions": 176027,
+    "outside_bh_bounds": 4104,
+    "route_mapped_rate": 0.9786649255876897,
+    "trip_matched_rate": 0.0001694412756802731,
+    "delayed_positions_rate": 0.03153791550768867,
+    "outside_bh_bounds_rate": 0.00040010759228529386
+  },
+  "latest_vehicles": {
+    "vehicles": 2669,
+    "route_mapped": 2631,
+    "trip_matched": 90,
+    "high_confidence": 90,
+    "not_evaluated": 2434,
+    "route_mapped_rate": 0.9857624578493818,
+    "trip_matched_rate": 0.03372049456725365,
+    "high_confidence_rate": 0.03372049456725365
+  },
+  "eta": {
+    "predictions": 2673,
+    "labeled_predictions": 24,
+    "model_versions": 2,
+    "first_prediction": "2026-07-11T16:14:29+00:00",
+    "last_prediction": "2026-07-15T00:55:39.565874+00:00"
+  },
+  "pipeline": {
+    "cycles": 4,
+    "failures": 0,
+    "positions_inspected": 1000,
+    "positions_matched": 425,
+    "arrivals_detected": 71,
+    "predictions_labeled": 3,
+    "predictions_created": 1102,
+    "avg_duration_ms": 22223.179072752828
+  },
+  "top_lines": [
+    {
+      "line": "30",
+      "positions": 169775,
+      "vehicles": 55,
+      "trip_matched": 14,
+      "avg_match_confidence": 0.9550289285714284,
+      "trip_matched_rate": 8.246208216757473e-05
+    },
+    {
+      "line": "51",
+      "positions": 123491,
+      "vehicles": 55,
+      "trip_matched": 6,
+      "avg_match_confidence": 0.9648421666666667,
+      "trip_matched_rate": 4.858653667068855e-05
+    },
+    {
+      "line": "5201",
+      "positions": 113737,
+      "vehicles": 39,
+      "trip_matched": 10,
+      "avg_match_confidence": 0.9736214000000001,
+      "trip_matched_rate": 8.792213615622005e-05
+    },
+    {
+      "line": "9250",
+      "positions": 113167,
+      "vehicles": 49,
+      "trip_matched": 13,
+      "avg_match_confidence": 0.9739716923076922,
+      "trip_matched_rate": 0.00011487447754203964
+    },
+    {
+      "line": "3302A",
+      "positions": 109382,
+      "vehicles": 36,
+      "trip_matched": 59,
+      "avg_match_confidence": 0.6721617457627117,
+      "trip_matched_rate": 0.000539394050209358
+    },
+    {
+      "line": "62",
+      "positions": 103871,
+      "vehicles": 48,
+      "trip_matched": 2,
+      "avg_match_confidence": 0.9605725,
+      "trip_matched_rate": 1.925465240538745e-05
+    },
+    {
+      "line": "1502",
+      "positions": 101422,
+      "vehicles": 32,
+      "trip_matched": 12,
+      "avg_match_confidence": 0.9884767499999999,
+      "trip_matched_rate": 0.00011831752479738124
+    },
+    {
+      "line": "4110",
+      "positions": 98431,
+      "vehicles": 36,
+      "trip_matched": 87,
+      "avg_match_confidence": 0.8010519885057469,
+      "trip_matched_rate": 0.0008838678871493737
+    },
+    {
+      "line": "8207",
+      "positions": 98348,
+      "vehicles": 40,
+      "trip_matched": 22,
+      "avg_match_confidence": 0.7751020909090911,
+      "trip_matched_rate": 0.00022369544881441412
+    },
+    {
+      "line": "2104",
+      "positions": 93258,
+      "vehicles": 41,
+      "trip_matched": 8,
+      "avg_match_confidence": 0.95621025,
+      "trip_matched_rate": 8.578352527397113e-05
+    },
+    {
+      "line": "5250",
+      "positions": 90593,
+      "vehicles": 37,
+      "trip_matched": 15,
+      "avg_match_confidence": 0.9478710666666665,
+      "trip_matched_rate": 0.00016557570673230823
+    },
+    {
+      "line": "3050",
+      "positions": 89985,
+      "vehicles": 44,
+      "trip_matched": 1,
+      "avg_match_confidence": 0.987415,
+      "trip_matched_rate": 1.1112963271656387e-05
+    },
+    {
+      "line": "1505",
+      "positions": 89704,
+      "vehicles": 25,
+      "trip_matched": 7,
+      "avg_match_confidence": 0.9632350000000001,
+      "trip_matched_rate": 7.803442432890396e-05
+    },
+    {
+      "line": "3503A",
+      "positions": 89172,
+      "vehicles": 39,
+      "trip_matched": 16,
+      "avg_match_confidence": 0.9229376875,
+      "trip_matched_rate": 0.00017942852016327997
+    },
+    {
+      "line": "4802A",
+      "positions": 84859,
+      "vehicles": 28,
+      "trip_matched": 12,
+      "avg_match_confidence": 0.9710766666666665,
+      "trip_matched_rate": 0.00014141104655958708
+    },
+    {
+      "line": "64",
+      "positions": 78322,
+      "vehicles": 28,
+      "trip_matched": 5,
+      "avg_match_confidence": 0.979988,
+      "trip_matched_rate": 6.383902351829626e-05
+    },
+    {
+      "line": "4111",
+      "positions": 77198,
+      "vehicles": 33,
+      "trip_matched": 83,
+      "avg_match_confidence": 0.8739716144578311,
+      "trip_matched_rate": 0.0010751573874970854
+    },
+    {
+      "line": "9101",
+      "positions": 75771,
+      "vehicles": 26,
+      "trip_matched": 8,
+      "avg_match_confidence": 0.97840675,
+      "trip_matched_rate": 0.00010558129099523564
+    },
+    {
+      "line": "6350",
+      "positions": 73906,
+      "vehicles": 35,
+      "trip_matched": 5,
+      "avg_match_confidence": 0.9595665999999999,
+      "trip_matched_rate": 6.76535058046708e-05
+    },
+    {
+      "line": "1404A",
+      "positions": 73187,
+      "vehicles": 33,
+      "trip_matched": 13,
+      "avg_match_confidence": 0.9736583076923078,
+      "trip_matched_rate": 0.00017762717422493065
+    },
+    {
+      "line": "1509",
+      "positions": 72325,
+      "vehicles": 24,
+      "trip_matched": 5,
+      "avg_match_confidence": 0.9289376,
+      "trip_matched_rate": 6.91323885240235e-05
+    },
+    {
+      "line": "3055",
+      "positions": 72083,
+      "vehicles": 25,
+      "trip_matched": 14,
+      "avg_match_confidence": 0.9374887142857142,
+      "trip_matched_rate": 0.00019422055130890778
+    },
+    {
+      "line": "8350",
+      "positions": 71306,
+      "vehicles": 35,
+      "trip_matched": 10,
+      "avg_match_confidence": 0.9737254999999999,
+      "trip_matched_rate": 0.00014024065296048017
+    },
+    {
+      "line": "617",
+      "positions": 70312,
+      "vehicles": 30,
+      "trip_matched": 4,
+      "avg_match_confidence": 0.98677925,
+      "trip_matched_rate": 5.688929343497554e-05
+    },
+    {
+      "line": "9412",
+      "positions": 69896,
+      "vehicles": 25,
+      "trip_matched": 5,
+      "avg_match_confidence": 0.966261,
+      "trip_matched_rate": 7.153485177978711e-05
+    }
+  ],
+  "database": [
+    {
+      "relation": "vehicle_positions",
+      "total_bytes": 5480235008,
+      "table_bytes": 1710301184,
+      "index_bytes": 3769434112,
+      "estimated_rows": 10313378,
+      "seq_scan": 1557,
+      "idx_scan": 1061875
+    },
+    {
+      "relation": "trip_stops",
+      "total_bytes": 799604736,
+      "table_bytes": 402759680,
+      "index_bytes": 396705792,
+      "estimated_rows": 6672551,
+      "seq_scan": 45,
+      "idx_scan": 44029
+    },
+    {
+      "relation": "arrival_predictions",
+      "total_bytes": 1859584,
+      "table_bytes": 811008,
+      "index_bytes": 1015808,
+      "estimated_rows": 5480,
+      "seq_scan": 1890,
+      "idx_scan": 34489
+    },
+    {
+      "relation": "collection_runs",
+      "total_bytes": 835584,
+      "table_bytes": 442368,
+      "index_bytes": 352256,
+      "estimated_rows": 3243,
+      "seq_scan": 8,
+      "idx_scan": 34
+    },
+    {
+      "relation": "arrival_events",
+      "total_bytes": 204800,
+      "table_bytes": 32768,
+      "index_bytes": 147456,
+      "estimated_rows": 283,
+      "seq_scan": 2180,
+      "idx_scan": 13067
+    },
+    {
+      "relation": "pipeline_runs",
+      "total_bytes": 65536,
+      "table_bytes": 8192,
+      "index_bytes": 49152,
+      "estimated_rows": 14,
+      "seq_scan": 4,
+      "idx_scan": 0
+    }
+  ],
+  "limitations": [
+    "Taxas descrevem somente a janela coletada; períodos sem processo ativo aparecem como gaps.",
+    "Este snapshot antecede a priorização da posição mais recente por veículo e deve ser regenerado após uma nova janela de coleta.",
+    "MAE e percentis só devem ser publicados quando labeled_predictions for suficiente.",
+    "Validação de campo exige observação humana e não é inferida automaticamente."
+  ]
+}

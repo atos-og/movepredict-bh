@@ -2,6 +2,7 @@ services:
   db:
     image: postgis/postgis:17-3.5
     platform: linux/amd64
+    restart: unless-stopped
     environment:
       POSTGRES_DB: movepredict
       POSTGRES_USER: movepredict
@@ -38,6 +39,7 @@ services:
 
   collector:
     build: ./backend
+    restart: unless-stopped
     command: ["sh", "-c", "alembic upgrade head && python -m app.workers.realtime_pipeline"]
     environment:
       MOVEPREDICT_DATABASE_URL: postgresql+psycopg://movepredict:movepredict@db:5432/movepredict
@@ -47,7 +49,8 @@ services:
       MOVEPREDICT_REALTIME_MAX_RETRIES: 4
       MOVEPREDICT_REALTIME_BACKOFF_SECONDS: 1
       MOVEPREDICT_REALTIME_DISAPPEARANCE_SECONDS: 120
-      MOVEPREDICT_TRIP_MATCH_BATCH_SIZE: 250
+      MOVEPREDICT_REALTIME_MAX_FUTURE_SECONDS: 300
+      MOVEPREDICT_TRIP_MATCH_BATCH_SIZE: 5000
       MOVEPREDICT_ARRIVAL_DETECTION_BATCH_SIZE: 2000
     depends_on:
       db:
@@ -68,6 +71,7 @@ services:
 
   retention:
     build: ./backend
+    restart: unless-stopped
     command: ["python", "-m", "app.workers.retention"]
     environment:
       MOVEPREDICT_DATABASE_URL: postgresql+psycopg://movepredict:movepredict@db:5432/movepredict

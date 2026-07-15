@@ -1,0 +1,16 @@
+{
+  "model_version": "baseline-shape-speed-v1",
+  "train_count": 85,
+  "validation_count": 22,
+  "validation_start": "2026-07-15T01:00:07.738512+00:00",
+  "minimum_validation_samples": 100,
+  "publishable": false,
+  "not_publishable_reason": "Amostra temporal rotulada abaixo do mínimo configurado.",
+  "overall": null,
+  "segments": {
+    "route": {},
+    "hour": {},
+    "distance": {},
+    "horizon": {}
+  }
+}

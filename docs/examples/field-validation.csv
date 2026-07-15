@@ -1,0 +1,2 @@
+observed_at_utc,observed_at_local,line,direction,gtfs_stop_id,vehicle_id,eta_seconds,uncertainty_seconds,actual_arrival_utc,absolute_error_seconds,trip_match_confidence,feed_lag_seconds,result,notes
+,,,,,,,,,,,,,

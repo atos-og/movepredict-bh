@@ -26,6 +26,7 @@ class EvaluationRecord:
     generated_at: datetime
     route_id: str
     distance_meters: float | None
+    horizon_seconds: int | None = None
 
 
 @dataclass(frozen=True)
@@ -184,6 +185,8 @@ def load_evaluation_records(session: Session, model_version: str) -> list[Evalua
             generated_at=prediction.generated_at.astimezone(UTC),
             route_id=route.gtfs_route_id or str(route.id),
             distance_meters=prediction.distance_to_stop_meters,
+            horizon_seconds=prediction.horizon_seconds
+            or round((prediction.predicted_arrival - prediction.generated_at).total_seconds()),
         )
         for prediction, route in rows
     ]
@@ -214,22 +217,26 @@ def calculate_metrics(records: list[EvaluationRecord]) -> PredictionMetrics | No
     )
 
 
-def segmented_metrics(records: list[EvaluationRecord]) -> dict[str, dict[str, PredictionMetrics]]:
+def segmented_metrics(
+    records: list[EvaluationRecord], *, min_samples: int = 1
+) -> dict[str, dict[str, PredictionMetrics]]:
     groups: dict[str, dict[str, list[EvaluationRecord]]] = {
         "route": {},
         "hour": {},
         "distance": {},
+        "horizon": {},
     }
     for record in records:
         groups["route"].setdefault(record.route_id, []).append(record)
         local_hour = str(record.generated_at.astimezone(SAO_PAULO).hour)
         groups["hour"].setdefault(local_hour, []).append(record)
         groups["distance"].setdefault(_distance_bucket(record.distance_meters), []).append(record)
+        groups["horizon"].setdefault(_horizon_bucket(record.horizon_seconds), []).append(record)
     return {
         dimension: {
             key: metrics
             for key, values in dimension_groups.items()
-            if (metrics := calculate_metrics(values)) is not None
+            if len(values) >= min_samples and (metrics := calculate_metrics(values)) is not None
         }
         for dimension, dimension_groups in groups.items()
     }
@@ -243,6 +250,16 @@ def _distance_bucket(distance: float | None) -> str:
     if distance < 2_000:
         return "500-1999m"
     return "2000m+"
+
+
+def _horizon_bucket(horizon: int | None) -> str:
+    if horizon is None:
+        return "unknown"
+    if horizon < 5 * 60:
+        return "0-4min"
+    if horizon < 15 * 60:
+        return "5-14min"
+    return "15min+"
 
 
 def _percentile(values: list[float], percentile: float) -> float:

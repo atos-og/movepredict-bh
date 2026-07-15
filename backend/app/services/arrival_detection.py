@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, text, update
 from sqlalchemy.orm import Session
@@ -29,20 +29,27 @@ def detect_arrivals(
             .where(
                 VehiclePosition.trip_id.is_not(None),
                 VehiclePosition.shape_progress.is_not(None),
+                VehiclePosition.arrival_detection_checked_at.is_(None),
                 ArrivalEvent.id.is_(None),
                 (VehiclePosition.speed_kmh.is_(None))
                 | (VehiclePosition.speed_kmh <= max_speed_kmh),
             )
-            .order_by(VehiclePosition.observed_at)
+            .order_by(VehiclePosition.observed_at.desc())
             .limit(limit)
         )
     )
     detected = labeled = 0
+    pending_keys: set[tuple[int, int, int, object]] = set()
+    checked_at = datetime.now(UTC)
     for position in positions:
+        position.arrival_detection_checked_at = checked_at
         nearest = _nearest_stop(session, position, radius_meters)
         if nearest is None or not _is_arrival(session, position, nearest):
             continue
         service_date = _service_date(session, position)
+        event_key = (position.vehicle_id, position.trip_id, nearest["stop_id"], service_date)
+        if event_key in pending_keys:
+            continue
         exists = session.scalar(
             select(ArrivalEvent.id).where(
                 ArrivalEvent.vehicle_id == position.vehicle_id,
@@ -53,6 +60,7 @@ def detect_arrivals(
         )
         if exists:
             continue
+        pending_keys.add(event_key)
         session.add(
             ArrivalEvent(
                 vehicle_id=position.vehicle_id,

@@ -116,6 +116,7 @@ class VehiclePosition(Base):
     shape_progress: Mapped[float | None] = mapped_column(Float)
     trip_match_confidence: Mapped[float | None] = mapped_column(Float)
     trip_match_method: Mapped[str | None] = mapped_column(String(50))
+    arrival_detection_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         CheckConstraint("latitude BETWEEN -90 AND 90", name="ck_position_latitude"),
@@ -144,6 +145,9 @@ class ArrivalPrediction(Base):
     distance_to_stop_meters: Mapped[float | None] = mapped_column(Float)
     uncertainty_seconds: Mapped[int | None] = mapped_column(Integer)
     model_version: Mapped[str] = mapped_column(String(50), default="baseline-haversine-v1")
+    prediction_basis: Mapped[str | None] = mapped_column(String(50))
+    sample_size: Mapped[int | None] = mapped_column(Integer)
+    horizon_seconds: Mapped[int | None] = mapped_column(Integer)
 
 
 class CollectionRun(Base):
@@ -167,6 +171,46 @@ class CollectionRun(Base):
     duration_ms: Mapped[float | None] = mapped_column(Float)
     error_type: Mapped[str | None] = mapped_column(String(100))
     error_message: Mapped[str | None] = mapped_column(Text)
+
+
+class PipelineRun(Base):
+    __tablename__ = "pipeline_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    collection_run_id: Mapped[int | None] = mapped_column(ForeignKey("collection_runs.id"))
+    positions_inspected: Mapped[int] = mapped_column(Integer, default=0)
+    positions_matched: Mapped[int] = mapped_column(Integer, default=0)
+    positions_rejected_no_candidate: Mapped[int] = mapped_column(Integer, default=0)
+    positions_rejected_ambiguous: Mapped[int] = mapped_column(Integer, default=0)
+    arrivals_detected: Mapped[int] = mapped_column(Integer, default=0)
+    predictions_labeled: Mapped[int] = mapped_column(Integer, default=0)
+    predictions_created: Mapped[int] = mapped_column(Integer, default=0)
+    duration_ms: Mapped[float | None] = mapped_column(Float)
+    error_type: Mapped[str | None] = mapped_column(String(100))
+    error_message: Mapped[str | None] = mapped_column(Text)
+
+
+class RouteHourSpeedStat(Base):
+    __tablename__ = "route_hour_speed_stats"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    route_id: Mapped[int] = mapped_column(ForeignKey("transit_routes.id"), index=True)
+    local_hour: Mapped[int] = mapped_column(Integer)
+    average_speed_kmh: Mapped[float] = mapped_column(Float)
+    sample_size: Mapped[int] = mapped_column(Integer)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    window_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    refreshed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        UniqueConstraint("route_id", "local_hour", name="uq_route_hour_speed_stat"),
+        CheckConstraint("local_hour BETWEEN 0 AND 23", name="ck_route_hour_speed_local_hour"),
+        CheckConstraint("average_speed_kmh > 0", name="ck_route_hour_speed_average"),
+        CheckConstraint("sample_size >= 0", name="ck_route_hour_speed_sample_size"),
+    )
 
 
 class ServiceCalendar(Base):
@@ -216,7 +260,9 @@ class ArrivalEvent(Base):
     route_id: Mapped[int] = mapped_column(ForeignKey("transit_routes.id"), index=True)
     trip_id: Mapped[int] = mapped_column(ForeignKey("transit_trips.id"), index=True)
     stop_id: Mapped[int] = mapped_column(ForeignKey("transit_stops.id"), index=True)
-    position_id: Mapped[int] = mapped_column(ForeignKey("vehicle_positions.id"), unique=True)
+    position_id: Mapped[int] = mapped_column(
+        ForeignKey("vehicle_positions.id", ondelete="CASCADE"), unique=True
+    )
     service_date: Mapped[date] = mapped_column(Date, index=True)
     arrived_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     distance_to_stop_meters: Mapped[float] = mapped_column(Float)

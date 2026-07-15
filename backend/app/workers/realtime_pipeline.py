@@ -3,9 +3,13 @@ import json
 import logging
 import time
 from dataclasses import asdict
+from datetime import UTC, datetime
+
+from sqlalchemy import func, select
 
 from app.config import get_settings
 from app.database import SessionLocal
+from app.models import CollectionRun, PipelineRun
 from app.services.arrival_detection import detect_arrivals
 from app.services.prediction_generation import generate_predictions
 from app.services.trip_matching import match_unassigned_positions
@@ -16,11 +20,46 @@ logger = logging.getLogger("movepredict.pipeline")
 
 def run_pipeline_once() -> dict:
     settings = get_settings()
-    collection = collect_once()
-    with SessionLocal() as session:
-        matching = match_unassigned_positions(session, limit=settings.trip_match_batch_size)
-        arrivals = detect_arrivals(session, limit=settings.arrival_detection_batch_size)
-        predictions = generate_predictions(session)
+    started_at = datetime.now(UTC)
+    started_monotonic = time.monotonic()
+    try:
+        collection = collect_once()
+        with SessionLocal() as session:
+            collection_run_id = session.scalar(select(func.max(CollectionRun.id)))
+            matching = match_unassigned_positions(session, limit=settings.trip_match_batch_size)
+            arrivals = detect_arrivals(session, limit=settings.arrival_detection_batch_size)
+            predictions = generate_predictions(session)
+            session.add(
+                PipelineRun(
+                    started_at=started_at,
+                    finished_at=datetime.now(UTC),
+                    status="success",
+                    collection_run_id=collection_run_id,
+                    positions_inspected=matching.inspected,
+                    positions_matched=matching.matched,
+                    positions_rejected_no_candidate=matching.rejected_no_candidate,
+                    positions_rejected_ambiguous=matching.rejected_ambiguous,
+                    arrivals_detected=arrivals.detected,
+                    predictions_labeled=arrivals.predictions_labeled,
+                    predictions_created=predictions.predictions,
+                    duration_ms=(time.monotonic() - started_monotonic) * 1_000,
+                )
+            )
+            session.commit()
+    except Exception as error:
+        with SessionLocal() as session:
+            session.add(
+                PipelineRun(
+                    started_at=started_at,
+                    finished_at=datetime.now(UTC),
+                    status="failure",
+                    duration_ms=(time.monotonic() - started_monotonic) * 1_000,
+                    error_type=type(error).__name__,
+                    error_message=str(error)[:2_000],
+                )
+            )
+            session.commit()
+        raise
     result = {
         "collection": asdict(collection),
         "matching": asdict(matching),

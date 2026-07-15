@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -52,12 +52,14 @@ class PbhRealtimeClient:
         timeout: float = 15.0,
         max_retries: int = 4,
         backoff_seconds: float = 1.0,
+        max_future_seconds: int = 300,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         self.url = url
         self.timeout = timeout
         self.max_retries = max_retries
         self.backoff_seconds = backoff_seconds
+        self.max_future_seconds = max_future_seconds
         self.transport = transport
         self.last_attempt_count = 0
         self.last_http_status: int | None = None
@@ -71,11 +73,15 @@ class PbhRealtimeClient:
             raise ValueError("O feed da PBH não retornou uma lista JSON.")
         self.last_fetched_count = len(payload)
         positions = []
+        future_cutoff = datetime.now(UTC) + timedelta(seconds=self.max_future_seconds)
         for row in payload:
             if row.get("EV") != "105":
                 continue
             try:
-                positions.append(parse_position(row))
+                position = parse_position(row)
+                if position.observed_at > future_cutoff:
+                    raise ValueError("Posição com horário futuro além da tolerância.")
+                positions.append(position)
             except (KeyError, TypeError, ValueError):
                 self.last_parse_error_count += 1
         return positions

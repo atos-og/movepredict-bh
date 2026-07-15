@@ -142,6 +142,7 @@ def collect_once() -> PersistResult:
         timeout=settings.realtime_timeout_seconds,
         max_retries=settings.realtime_max_retries,
         backoff_seconds=settings.realtime_backoff_seconds,
+        max_future_seconds=settings.realtime_max_future_seconds,
     )
     try:
         positions = client.fetch_positions()
