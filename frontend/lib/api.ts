@@ -9,7 +9,12 @@ import type {
   Trip,
 } from "@/types/transit";
 import type { GeoBounds } from "@/lib/geo";
-import type { ArrivalPrediction, RealtimeResponse, VehiclePosition } from "@/types/realtime";
+import type { ArrivalPrediction, RealtimeResponse, ServiceAlertResponse, VehiclePosition } from "@/types/realtime";
+import type {
+  GeocodingApiResponse,
+  JourneyPlanApiResponse,
+  JourneyPreference,
+} from "@/types/mobility";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
@@ -52,6 +57,26 @@ function params(values: Record<string, string | number | undefined>): string {
 }
 
 export const api = {
+  listServiceAlerts: () => request<ServiceAlertResponse>("/realtime/alerts"),
+  searchDestinations: (q: string, limit = 6) =>
+    request<GeocodingApiResponse>(`/geocoding/search${params({ q, limit })}`),
+  planJourney: (
+    originLat: number,
+    originLon: number,
+    destinationLat: number,
+    destinationLon: number,
+    preference: JourneyPreference,
+    limit = 3,
+  ) => request<JourneyPlanApiResponse>(
+    `/journeys/plan${params({
+      origin_lat: originLat,
+      origin_lon: originLon,
+      destination_lat: destinationLat,
+      destination_lon: destinationLon,
+      preference,
+      limit,
+    })}`,
+  ),
   listLines: (q = "", limit = 20, offset = 0) =>
     request<PageResponse<Line>>(`/lines${params({ q: q || undefined, limit, offset })}`),
   getLine: (routeId: string) => request<DataResponse<Line>>(`/lines/${routeId}`),

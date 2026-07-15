@@ -30,7 +30,7 @@
 - [x] Atualizar mapa e previsoes a cada 20 segundos.
 - [x] Cobrir contratos com testes unitarios e PostGIS.
 - [x] Conectar geocodificacao configuravel.
-- [ ] Integrar motor real de roteamento de transporte publico.
+- [x] Integrar motor real de roteamento de transporte publico.
 - [ ] Validar coleta prolongada em staging.
 
 ## Fase 5 - Entrega
@@ -43,3 +43,15 @@
 - [ ] Executar testes de carga e auditoria final.
 - [ ] Publicar staging e producao mediante autorizacao.
 - [ ] Finalizar resultados de ETA e case study.
+
+## Atualizacao - assistente de mobilidade
+
+- [x] Geocodificacao real por proxy com cache e limite de uso.
+- [x] OpenTripPlanner local preparado com OSM de BH e GTFS oficial.
+- [x] Resultado confiavel com preferencias e alternativas.
+- [x] Modo viagem com recálculo fora da rota e alerta de desembarque.
+- [x] Rota persistida no aparelho para consulta offline.
+- [x] Contrato opcional para alertas GTFS-Realtime.
+- [x] Identidade PWA original com variantes Apple, maskable e monocromatica.
+- [ ] Validar grafo, recálculo e alerta em uma viagem fisica em BH.
+- [ ] Publicar metricas de ETA somente depois da amostra minima.

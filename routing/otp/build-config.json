@@ -1,0 +1,8 @@
+{
+  "transitServiceStart": "-P1M",
+  "transitServiceEnd": "P1Y",
+  "osmDefaults": {
+    "timeZone": "America/Sao_Paulo",
+    "osmTagMapping": "default"
+  }
+}

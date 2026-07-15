@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     arrival_detection_batch_size: int = 2_000
     position_retention_days: int = 90
     position_retention_batch_size: int = 50_000
+    geocoding_url: str = "https://nominatim.openstreetmap.org"
+    geocoding_user_agent: str = "MovePredict-BH/0.1 (portfolio mobility project)"
+    geocoding_timeout_seconds: float = 10.0
+    geocoding_cache_seconds: int = 86_400
+    journey_planner_url: str = "http://otp:8080/otp/gtfs/v1"
+    journey_planner_timeout_seconds: float = 30.0
+    gtfs_rt_alerts_url: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:

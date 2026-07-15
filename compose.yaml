@@ -24,6 +24,10 @@ services:
       MOVEPREDICT_GTFS_DATA_DIR: /data/gtfs
       MOVEPREDICT_CORS_ORIGINS: ${MOVEPREDICT_CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       MOVEPREDICT_DATABASE_URL: postgresql+psycopg://movepredict:movepredict@db:5432/movepredict
+      MOVEPREDICT_JOURNEY_PLANNER_URL: ${MOVEPREDICT_JOURNEY_PLANNER_URL:-http://otp:8080/otp/gtfs/v1}
+      MOVEPREDICT_GEOCODING_URL: ${MOVEPREDICT_GEOCODING_URL:-https://nominatim.openstreetmap.org}
+      MOVEPREDICT_GEOCODING_USER_AGENT: ${MOVEPREDICT_GEOCODING_USER_AGENT:-MovePredict-BH/0.1 (+https://github.com/atos-og/movepredict-bh)}
+      MOVEPREDICT_GTFS_RT_ALERTS_URL: ${MOVEPREDICT_GTFS_RT_ALERTS_URL:-}
     ports:
       - "8000:8000"
     volumes:
@@ -80,6 +84,27 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  otp-build:
+    profiles: ["routing-tools"]
+    image: opentripplanner/opentripplanner:2.9.0
+    command: ["--build", "--save"]
+    environment:
+      JAVA_TOOL_OPTIONS: -Xmx${OTP_JAVA_MAX_HEAP:-4G}
+    volumes:
+      - ./routing/otp:/var/opentripplanner
+
+  otp:
+    profiles: ["routing"]
+    image: opentripplanner/opentripplanner:2.9.0
+    restart: unless-stopped
+    command: ["--load", "--serve"]
+    environment:
+      JAVA_TOOL_OPTIONS: -Xmx${OTP_JAVA_MAX_HEAP:-4G}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./routing/otp:/var/opentripplanner
 
   web:
     build:

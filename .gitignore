@@ -230,6 +230,12 @@ out/
 test-results/
 playwright-report/
 
+# OpenTripPlanner generated inputs and graph
+routing/cache/
+routing/otp/*.pbf
+routing/otp/*.zip
+routing/otp/*.obj
+
 # Local environment files (examples remain versioned)
 .env.local
 .env.development.local

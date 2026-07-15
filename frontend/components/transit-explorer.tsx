@@ -129,7 +129,7 @@ export function TransitExplorer() {
     }
   }, []);
 
-  const runUnifiedSearch = useCallback(async (query: string) => {
+  const runUnifiedSearch = useCallback(async (query: string, includeDestinations = false) => {
     const normalized = query.trim();
     if (normalized.length < 2) return;
     const requestId = ++suggestionRequest.current;
@@ -137,7 +137,7 @@ export function TransitExplorer() {
     setSuggestionError(null);
 
     const [destinationResult, stopResult, lineResult] = await Promise.allSettled([
-      geocodingProvider.search(normalized),
+      includeDestinations ? geocodingProvider.search(normalized) : Promise.resolve({ status: "unavailable" as const, data: [] as const }),
       api.listStops(normalized, SUGGESTION_LIMIT),
       api.listLines(normalized, SUGGESTION_LIMIT),
     ]);
@@ -168,7 +168,7 @@ export function TransitExplorer() {
   useEffect(() => {
     const normalized = destinationQuery.trim();
     if (normalized.length < 2) return;
-    const debounce = window.setTimeout(() => void runUnifiedSearch(normalized), 280);
+    const debounce = window.setTimeout(() => void runUnifiedSearch(normalized, false), 280);
     return () => window.clearTimeout(debounce);
   }, [destinationQuery, runUnifiedSearch]);
 
@@ -265,7 +265,7 @@ export function TransitExplorer() {
 
   function submitDestination() {
     const normalized = destinationQuery.trim();
-    if (normalized.length >= 2) void runUnifiedSearch(normalized);
+    if (normalized.length >= 2) void runUnifiedSearch(normalized, true);
   }
 
   function changeDestinationQuery(value: string) {

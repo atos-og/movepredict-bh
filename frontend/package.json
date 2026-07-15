@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --test lib/geo.test.ts",
+    "test": "node --test lib/geo.test.ts lib/polyline.test.ts",
     "test:visual": "playwright test",
     "test:ci": "playwright test tests/visual/quality.spec.ts tests/visual/responsive.spec.ts",
     "test:visual:update": "playwright test --update-snapshots",

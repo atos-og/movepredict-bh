@@ -36,6 +36,29 @@ export type RealtimeResponse<T> = {
   meta: RealtimeMeta;
 };
 
+export type ServiceAlert = {
+  id: string;
+  title: string;
+  description: string | null;
+  url: string | null;
+  cause: string | null;
+  effect: string | null;
+  route_ids: string[];
+  stop_ids: string[];
+  active_from: string | null;
+  active_until: string | null;
+};
+
+export type ServiceAlertResponse = {
+  data: ServiceAlert[];
+  meta: {
+    generated_at: string;
+    count: number;
+    status: "live" | "empty" | "unavailable";
+    source_configured: boolean;
+  };
+};
+
 export interface RealtimeProvider {
   listVehicles(routeId?: string): Promise<VehiclePosition[]>;
   listPredictions(stopId: string, routeId?: string): Promise<ArrivalPrediction[]>;

@@ -18,12 +18,10 @@ Nenhum recurso e publicado automaticamente e nenhuma credencial fica no reposito
 - `MOVEPREDICT_CORS_ORIGINS`
 - `MOVEPREDICT_REALTIME_POSITIONS_URL`
 - `NEXT_PUBLIC_API_URL`
-- `NEXT_PUBLIC_GEOCODING_URL`
 
-`NEXT_PUBLIC_JOURNEY_PLANNER_URL` permanece vazio ate a escolha de um motor de transporte
-publico. Secrets devem existir somente no painel do provedor/GitHub Environment.
-O endpoint publico do Nominatim da OSMF nao deve ser usado para autocomplete; configure uma
-instancia propria ou um provedor cujo plano permita essa finalidade.
+Secrets devem existir somente no painel do provedor/GitHub Environment. O Nominatim publico
+nao e usado para autocomplete: a API envia apenas buscas confirmadas, com cache, User-Agent
+identificavel e limite de uma requisicao por segundo.
 
 ## Requisitos de staging
 
@@ -39,3 +37,14 @@ instancia propria ou um provedor cujo plano permita essa finalidade.
 O workflow `Staging smoke test` e manual e recebe apenas URLs publicas. Ele valida frontend,
 liveness, readiness, GTFS e contrato realtime. A publicacao continua bloqueada ate autorizacao
 explicita e provisionamento dos recursos externos.
+
+## Configuracao do assistente
+
+- `MOVEPREDICT_GEOCODING_URL`: endpoint Nominatim ou provedor compativel.
+- `MOVEPREDICT_GEOCODING_USER_AGENT`: identificacao publica do projeto.
+- `MOVEPREDICT_JOURNEY_PLANNER_URL`: GraphQL do OpenTripPlanner.
+- `MOVEPREDICT_GTFS_RT_ALERTS_URL`: fonte opcional de alertas; nao versionar se contiver chave.
+
+O frontend recebe apenas `NEXT_PUBLIC_API_URL`. Geocodificacao, OTP e alertas ficam atras da API.
+O perfil Docker `routing` executa o OTP sem credencial e sem API paga. Gere o `graph.obj` com
+`scripts/prepare_otp.py` e o perfil `routing-tools` antes da primeira inicializacao.

@@ -1,12 +1,21 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { GeolocationState } from "@/types/mobility";
 
 const INITIAL_STATE: GeolocationState = { status: "idle", coordinates: null };
+let sessionState: GeolocationState = INITIAL_STATE;
 
 export function useGeolocation() {
-  const [state, setState] = useState<GeolocationState>(INITIAL_STATE);
+  const [state, setReactState] = useState<GeolocationState>(sessionState);
+
+  const setState = useCallback((next: GeolocationState | ((current: GeolocationState) => GeolocationState)) => {
+    setReactState((current) => {
+      const resolved = typeof next === "function" ? next(current) : next;
+      sessionState = resolved;
+      return resolved;
+    });
+  }, []);
 
   const requestLocation = useCallback(() => {
     if (!("geolocation" in navigator)) {
@@ -38,7 +47,14 @@ export function useGeolocation() {
       },
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
     );
-  }, []);
+  }, [setState]);
+
+  useEffect(() => {
+    if (state.status !== "idle" || !("permissions" in navigator)) return;
+    void navigator.permissions.query({ name: "geolocation" }).then((permission) => {
+      if (permission.state === "granted") requestLocation();
+    }).catch(() => undefined);
+  }, [requestLocation, state.status]);
 
   return { ...state, requestLocation };
 }
