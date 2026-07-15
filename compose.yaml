@@ -22,7 +22,7 @@ services:
     environment:
       MOVEPREDICT_ENVIRONMENT: production
       MOVEPREDICT_GTFS_DATA_DIR: /data/gtfs
-      MOVEPREDICT_CORS_ORIGINS: http://localhost:3000
+      MOVEPREDICT_CORS_ORIGINS: ${MOVEPREDICT_CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       MOVEPREDICT_DATABASE_URL: postgresql+psycopg://movepredict:movepredict@db:5432/movepredict
     ports:
       - "8000:8000"
@@ -85,7 +85,7 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     ports:
       - "3000:3000"
     depends_on:
