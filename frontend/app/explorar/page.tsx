@@ -1,5 +1,6 @@
+import { Suspense } from "react";
 import { TransitExplorer } from "@/components/transit-explorer";
 
 export default function ExplorePage() {
-  return <TransitExplorer />;
+  return <Suspense><TransitExplorer /></Suspense>;
 }

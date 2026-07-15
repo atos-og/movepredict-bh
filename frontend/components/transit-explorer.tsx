@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { LocationPermissionCard } from "@/components/location/location-permission-card";
 import { LocationStatus } from "@/components/location/location-status";
 import { JourneyOptionCard } from "@/components/journey/journey-option-card";
@@ -56,7 +57,11 @@ type ApiStatus = "connecting" | "online" | "offline";
 type DirectionId = "0" | "1";
 
 export function TransitExplorer() {
-  const [panelView, setPanelView] = useState<PanelView>("home");
+  const searchParams = useSearchParams();
+  const requestedView = searchParams.get("view");
+  const [panelView, setPanelView] = useState<PanelView>(() =>
+    requestedView === "favorites" || requestedView === "more" ? requestedView : "home",
+  );
   const [detailOrigin, setDetailOrigin] = useState<DetailOrigin>("home");
   const [panelOpen, setPanelOpen] = useState(true);
   const [mode, setMode] = useState<SearchMode>("lines");

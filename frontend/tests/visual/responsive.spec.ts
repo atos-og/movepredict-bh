@@ -19,3 +19,43 @@ for (const viewport of [
     expect(metrics.buttonsFit).toBe(true);
   });
 }
+
+test("floating navigation slides before changing sections", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const navigation = page.locator(".roadmap-nav");
+  const indicator = navigation.locator(".floating-navigation-indicator");
+  const initialTransform = await indicator.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  const navigationBox = await navigation.boundingBox();
+
+  expect(navigationBox?.height).toBeLessThanOrEqual(64);
+  await navigation.getByRole("link", { name: "Linhas" }).click({ noWaitAfter: true });
+  await page.waitForTimeout(140);
+
+  const movingTransform = await indicator.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  expect(movingTransform).not.toBe(initialTransform);
+
+  await page.waitForURL(/\/linhas$/);
+  await expect(page.locator(".roadmap-nav a[aria-current='page']")).toHaveText("Linhas");
+});
+
+test("favorites and more preserve the selected navigation item", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("link", { name: "Favoritos", exact: true }).click();
+
+  await page.waitForURL(/\/explorar\?view=favorites$/);
+  await expect(page.locator(".mobile-bottom-navigation [aria-current='page']")).toHaveText(
+    "Favoritos",
+  );
+  await expect(page.locator(".panel-header > strong")).toHaveText("Favoritos");
+
+  await page.getByRole("button", { name: "Mais", exact: true }).click();
+  await expect(page.locator(".mobile-bottom-navigation [aria-current='page']")).toHaveText("Mais");
+  await expect(page.locator(".panel-header > strong")).toHaveText("Mais");
+});
