@@ -24,7 +24,8 @@
 - [x] Associar posicoes a viagens GTFS.
 - [x] Gerar e rotular previsoes de chegada.
 - [x] Criar avaliador temporal.
-- [ ] Coletar amostra suficiente e publicar metricas de ETA.
+- [x] Persistir métricas operacionais e disponibilizar relatório de qualidade/banco.
+- [ ] Coletar amostra suficiente e publicar métricas de ETA por linha, horário e horizonte.
 
 ## Trabalho conjunto
 

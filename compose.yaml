@@ -2,6 +2,7 @@ services:
   db:
     image: postgis/postgis:17-3.5
     platform: linux/amd64
+    restart: unless-stopped
     environment:
       POSTGRES_DB: movepredict
       POSTGRES_USER: movepredict
@@ -38,6 +39,7 @@ services:
 
   collector:
     build: ./backend
+    restart: unless-stopped
     command: ["sh", "-c", "alembic upgrade head && python -m app.workers.realtime_pipeline"]
     environment:
       MOVEPREDICT_DATABASE_URL: postgresql+psycopg://movepredict:movepredict@db:5432/movepredict
@@ -68,6 +70,7 @@ services:
 
   retention:
     build: ./backend
+    restart: unless-stopped
     command: ["python", "-m", "app.workers.retention"]
     environment:
       MOVEPREDICT_DATABASE_URL: postgresql+psycopg://movepredict:movepredict@db:5432/movepredict

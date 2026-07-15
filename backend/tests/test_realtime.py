@@ -115,6 +115,7 @@ def test_schedule_baseline_and_temporal_evaluation() -> None:
             generated_at=start + timedelta(hours=index),
             route_id="r1" if index < 3 else "r2",
             distance_meters=100 * index,
+            horizon_seconds=index * 300,
         )
         for index in range(1, 6)
     ]
@@ -128,3 +129,4 @@ def test_schedule_baseline_and_temporal_evaluation() -> None:
     assert metrics.mae_seconds == 45
     assert metrics.median_seconds == 45
     assert "r2" in segmented_metrics(validation)["route"]
+    assert "15min+" in segmented_metrics(validation)["horizon"]

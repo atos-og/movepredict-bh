@@ -38,11 +38,15 @@ def detect_arrivals(
         )
     )
     detected = labeled = 0
+    pending_keys: set[tuple[int, int, int, object]] = set()
     for position in positions:
         nearest = _nearest_stop(session, position, radius_meters)
         if nearest is None or not _is_arrival(session, position, nearest):
             continue
         service_date = _service_date(session, position)
+        event_key = (position.vehicle_id, position.trip_id, nearest["stop_id"], service_date)
+        if event_key in pending_keys:
+            continue
         exists = session.scalar(
             select(ArrivalEvent.id).where(
                 ArrivalEvent.vehicle_id == position.vehicle_id,
@@ -53,6 +57,7 @@ def detect_arrivals(
         )
         if exists:
             continue
+        pending_keys.add(event_key)
         session.add(
             ArrivalEvent(
                 vehicle_id=position.vehicle_id,

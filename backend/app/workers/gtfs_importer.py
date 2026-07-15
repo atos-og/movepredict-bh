@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 import httpx
-from sqlalchemy import select, text, update
+from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -21,7 +21,6 @@ from app.models import (
     TransitRoute,
     TransitStop,
     TransitTrip,
-    TripStop,
 )
 
 logger = logging.getLogger("movepredict.gtfs_import")
@@ -214,56 +213,91 @@ def _import_shapes(session: Session, path: Path) -> None:
 
 
 def _import_schedule(session: Session, path: Path, *, include_stop_times: bool) -> None:
-    trips = {
-        gtfs_trip_id: trip_id
-        for gtfs_trip_id, trip_id in session.execute(
-            select(TransitTrip.gtfs_trip_id, TransitTrip.id)
+    _copy_stop_times_to_staging(session, path)
+    session.execute(
+        text(
+            """
+            UPDATE transit_trips AS trip
+            SET
+                start_time_seconds = bounds.start_seconds,
+                end_time_seconds = bounds.end_seconds
+            FROM (
+                SELECT
+                    trip_id,
+                    min(pg_temp._gtfs_time_seconds(arrival_time)) AS start_seconds,
+                    max(pg_temp._gtfs_time_seconds(departure_time)) AS end_seconds
+                FROM gtfs_stop_times_stage
+                GROUP BY trip_id
+            ) AS bounds
+            WHERE trip.gtfs_trip_id = bounds.trip_id
+            """
         )
-    }
-    stops = {
-        gtfs_stop_id: stop_id
-        for gtfs_stop_id, stop_id in session.execute(
-            select(TransitStop.gtfs_stop_id, TransitStop.id)
-        )
-    }
-    schedule_bounds: dict[int, list[int]] = {}
-    stop_rows: list[dict] = []
-    for row in read_csv(path):
-        trip_id = trips.get(row["trip_id"])
-        stop_id = stops.get(row["stop_id"])
-        if trip_id is None or stop_id is None:
-            continue
-        arrival = _time_seconds(row.get("arrival_time"))
-        departure = _time_seconds(row.get("departure_time"))
-        values = [value for value in (arrival, departure) if value is not None]
-        if values:
-            bounds = schedule_bounds.setdefault(trip_id, [min(values), max(values)])
-            bounds[0] = min(bounds[0], *values)
-            bounds[1] = max(bounds[1], *values)
-        if include_stop_times:
-            stop_rows.append(
-                {
-                    "trip_id": trip_id,
-                    "stop_id": stop_id,
-                    "stop_sequence": int(row["stop_sequence"]),
-                    "scheduled_arrival_seconds": arrival,
-                    "scheduled_departure_seconds": departure,
-                }
-            )
-            if len(stop_rows) >= 5_000:
-                _upsert_trip_stops(session, stop_rows)
-                stop_rows = []
-    if stop_rows:
-        _upsert_trip_stops(session, stop_rows)
-    for batch in batches(
-        (
-            {"id": trip_id, "start_time_seconds": bounds[0], "end_time_seconds": bounds[1]}
-            for trip_id, bounds in schedule_bounds.items()
-        )
-    ):
-        session.execute(update(TransitTrip), batch)
-        session.commit()
+    )
     if include_stop_times:
+        session.execute(
+            text(
+                """
+                SET LOCAL synchronous_commit = off;
+                TRUNCATE trip_stops RESTART IDENTITY;
+                ALTER TABLE trip_stops DROP CONSTRAINT uq_trip_stop_sequence;
+                ALTER TABLE trip_stops DROP CONSTRAINT trip_stops_trip_id_fkey;
+                ALTER TABLE trip_stops DROP CONSTRAINT trip_stops_stop_id_fkey;
+                DROP INDEX ix_trip_stops_trip_id;
+                DROP INDEX ix_trip_stops_stop_id
+                """
+            )
+        )
+        session.execute(
+            text(
+                """
+                INSERT INTO trip_stops (
+                    trip_id,
+                    stop_id,
+                    stop_sequence,
+                    scheduled_arrival_seconds,
+                    scheduled_departure_seconds,
+                    shape_progress
+                )
+                SELECT
+                    trip.id,
+                    stop.id,
+                    stage.stop_sequence::integer,
+                    pg_temp._gtfs_time_seconds(stage.arrival_time),
+                    pg_temp._gtfs_time_seconds(stage.departure_time),
+                    CASE
+                        WHEN distance.max_distance > 0
+                             AND nullif(stage.shape_dist_traveled, '') IS NOT NULL
+                        THEN stage.shape_dist_traveled::double precision / distance.max_distance
+                    END
+                FROM gtfs_stop_times_stage AS stage
+                JOIN transit_trips AS trip ON trip.gtfs_trip_id = stage.trip_id
+                JOIN transit_stops AS stop ON stop.gtfs_stop_id = stage.stop_id
+                LEFT JOIN (
+                    SELECT
+                        trip_id,
+                        max(nullif(shape_dist_traveled, '')::double precision) AS max_distance
+                    FROM gtfs_stop_times_stage
+                    GROUP BY trip_id
+                ) AS distance ON distance.trip_id = stage.trip_id
+                """
+            )
+        )
+        session.execute(
+            text(
+                """
+                ALTER TABLE trip_stops
+                    ADD CONSTRAINT trip_stops_trip_id_fkey
+                    FOREIGN KEY (trip_id) REFERENCES transit_trips(id);
+                ALTER TABLE trip_stops
+                    ADD CONSTRAINT trip_stops_stop_id_fkey
+                    FOREIGN KEY (stop_id) REFERENCES transit_stops(id);
+                ALTER TABLE trip_stops
+                    ADD CONSTRAINT uq_trip_stop_sequence UNIQUE (trip_id, stop_sequence);
+                CREATE INDEX ix_trip_stops_trip_id ON trip_stops (trip_id);
+                CREATE INDEX ix_trip_stops_stop_id ON trip_stops (stop_id)
+                """
+            )
+        )
         session.execute(
             text(
                 """
@@ -277,22 +311,42 @@ def _import_schedule(session: Session, path: Path, *, include_stop_times: bool) 
                 """
             )
         )
-        session.commit()
+    session.commit()
 
 
-def _upsert_trip_stops(session: Session, rows: list[dict]) -> None:
-    statement = insert(TripStop).values(rows)
+def _copy_stop_times_to_staging(session: Session, path: Path) -> None:
     session.execute(
-        statement.on_conflict_do_update(
-            constraint="uq_trip_stop_sequence",
-            set_={
-                "stop_id": statement.excluded.stop_id,
-                "scheduled_arrival_seconds": statement.excluded.scheduled_arrival_seconds,
-                "scheduled_departure_seconds": statement.excluded.scheduled_departure_seconds,
-            },
+        text(
+            """
+            CREATE OR REPLACE FUNCTION pg_temp._gtfs_time_seconds(value text)
+            RETURNS integer LANGUAGE SQL IMMUTABLE AS $$
+                SELECT CASE WHEN value IS NULL OR value = '' THEN NULL ELSE
+                    split_part(value, ':', 1)::integer * 3600
+                    + split_part(value, ':', 2)::integer * 60
+                    + split_part(value, ':', 3)::integer
+                END
+            $$;
+            CREATE TEMP TABLE gtfs_stop_times_stage (
+                trip_id text,
+                arrival_time text,
+                departure_time text,
+                stop_id text,
+                stop_sequence text,
+                stop_headsign text,
+                pickup_type text,
+                drop_off_type text,
+                shape_dist_traveled text,
+                timepoint text
+            ) ON COMMIT DROP
+            """
         )
     )
-    session.commit()
+    driver_connection = session.connection().connection.driver_connection
+    copy_sql = "COPY gtfs_stop_times_stage FROM STDIN WITH (FORMAT CSV, HEADER TRUE)"
+    with driver_connection.cursor().copy(copy_sql) as copy:
+        with path.open("rb") as source:
+            while chunk := source.read(1024 * 1024):
+                copy.write(chunk)
 
 
 def _upsert(session: Session, model, rows: Iterable[dict], conflict_column: str) -> None:
@@ -321,13 +375,6 @@ def _line_base(value: str) -> str:
 
 def _int_or_none(value: str | None) -> int | None:
     return int(value) if value and value.strip() else None
-
-
-def _time_seconds(value: str | None) -> int | None:
-    if not value:
-        return None
-    hours, minutes, seconds = (int(part) for part in value.split(":"))
-    return hours * 3600 + minutes * 60 + seconds
 
 
 def _gtfs_date(value: str):

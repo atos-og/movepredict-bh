@@ -8,6 +8,7 @@ from sqlalchemy import delete, select
 from app.config import get_settings
 from app.database import SessionLocal
 from app.models import VehiclePosition
+from app.workers.speed_history import refresh_speed_history
 
 logger = logging.getLogger("movepredict.retention")
 
@@ -47,6 +48,8 @@ def main() -> None:
             batch_size=settings.position_retention_batch_size,
         )
         logger.info("posições removidas pela retenção: %s", deleted)
+        history = refresh_speed_history()
+        logger.info("estatísticas históricas atualizadas: %s", history["rows_refreshed"])
         if args.once:
             break
         time.sleep(24 * 60 * 60)

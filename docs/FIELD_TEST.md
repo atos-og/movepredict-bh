@@ -15,6 +15,11 @@ localizacao historica de usuarios.
 - escolher pontos seguros e horarios diurno e de pico;
 - preparar a planilha sem dados pessoais.
 
+Use `docs/examples/field-validation.csv`. O campo `result` aceita `confirmed`, `incorrect` ou
+`inconclusive`. Uma observação inconclusiva nunca deve ser convertida em acerto. Para gerar linhas
+candidatas com volume suficiente, consulte `docs/sql/operational_queries.sql` e escolha pelo menos
+uma linha troncal e uma alimentadora.
+
 ## Registro por observacao
 
 | Campo | Descricao |
@@ -42,3 +47,6 @@ localizacao historica de usuarios.
 
 O teste so e aprovado quando nao houver associacao comprovadamente incorreta exibida como certa,
 os estados vazios/atrasados estiverem claros e os criterios de `LAUNCH_CRITERIA.md` forem atendidos.
+
+Esta validação exige presença física. Automação prepara candidatos e métricas, mas não pode afirmar
+que um ônibus observado em campo corresponde ao veículo do feed sem registro humano.

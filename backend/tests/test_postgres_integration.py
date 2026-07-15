@@ -41,7 +41,7 @@ def postgres_session() -> Session:
     with Session(engine) as session:
         session.execute(
             text(
-                "TRUNCATE collection_runs, arrival_events, arrival_predictions, "
+                "TRUNCATE pipeline_runs, collection_runs, arrival_events, arrival_predictions, "
                 "vehicle_positions, vehicles, trip_stops, transit_trips, transit_shapes, "
                 "service_exceptions, service_calendars, transit_stops, route_source_codes, "
                 "transit_routes "
