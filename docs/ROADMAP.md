@@ -31,6 +31,7 @@
 - [x] Cobrir contratos com testes unitarios e PostGIS.
 - [x] Conectar geocodificacao configuravel.
 - [x] Integrar motor real de roteamento de transporte publico.
+- [x] Auditar localmente o fluxo completo com API, PostGIS, OTP e frontend.
 - [ ] Validar coleta prolongada em staging.
 
 ## Fase 5 - Entrega

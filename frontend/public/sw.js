@@ -1,4 +1,4 @@
-const CACHE_NAME = "movepredict-shell-v2";
+const CACHE_NAME = "movepredict-shell-v3";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {

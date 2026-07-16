@@ -24,6 +24,18 @@ type Props = {
 
 const BH_CENTER: [number, number] = [-19.9167, -43.9345];
 
+function MapAccessibility() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    container.setAttribute("role", "region");
+    container.setAttribute("aria-label", "Mapa de mobilidade de Belo Horizonte");
+  }, [map]);
+
+  return null;
+}
+
 function ViewportController({
   selectedStop,
   route,
@@ -67,6 +79,7 @@ export default function MapView({
 
   return (
     <MapContainer center={BH_CENTER} zoom={13} className="map" zoomControl attributionControl>
+      <MapAccessibility />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

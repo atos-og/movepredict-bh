@@ -16,7 +16,7 @@ import type {
   JourneyPreference,
 } from "@/types/mobility";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "/api").replace(/\/$/, "");
 
 export class ApiError extends Error {
   constructor(
@@ -88,8 +88,10 @@ export const api = {
     request<DataResponse<LineRoute>>(
       `/lines/${routeId}/route${params({ direction_id: directionId })}`,
     ),
-  listLineTrips: (routeId: string) =>
-    request<PageResponse<Trip>>(`/lines/${routeId}/trips${params({ limit: 200 })}`),
+  listLineTrips: (routeId: string, directionId?: string, limit = 200) =>
+    request<PageResponse<Trip>>(
+      `/lines/${routeId}/trips${params({ direction_id: directionId, limit })}`,
+    ),
   listStops: (q = "", limit = 20, offset = 0) =>
     request<PageResponse<Stop>>(`/stops${params({ q: q || undefined, limit, offset })}`),
   listStopsInBounds: (bounds: GeoBounds, limit = 100) =>

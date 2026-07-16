@@ -4,9 +4,9 @@ from fastapi.testclient import TestClient
 
 from app.dependencies import get_geocoding_service, get_journey_planner_service
 from app.main import create_app
-from app.schemas.mobility import Coordinates, GeocodedDestination
+from app.schemas.mobility import Coordinates, GeocodedDestination, JourneyPlan
 from app.services.geocoding import GeocodingResult
-from app.services.journey_planner import _to_plan
+from app.services.journey_planner import _friendly_place_name, _preference_sort_key, _to_plan
 
 
 def test_geocoding_endpoint_exposes_stable_contract() -> None:
@@ -121,3 +121,45 @@ def test_otp_payload_is_normalized_for_the_frontend() -> None:
     assert plan.steps[0].route_id == "562252"
     assert plan.steps[0].from_stop.stop_id == "stop-1"
     assert plan.steps[0].geometry == "encoded"
+
+
+def test_journey_preferences_rank_the_best_option_first() -> None:
+    base = {
+        "preference": "quickest",
+        "scheduled_departure": None,
+        "estimated_arrival": None,
+        "steps": [],
+    }
+    plans = [
+        JourneyPlan(
+            id="slow-direct",
+            total_duration_minutes=39,
+            walking_duration_minutes=4,
+            walking_distance_meters=250,
+            transfer_count=0,
+            **base,
+        ),
+        JourneyPlan(
+            id="fast-transfer",
+            total_duration_minutes=31,
+            walking_duration_minutes=7,
+            walking_distance_meters=500,
+            transfer_count=1,
+            **base,
+        ),
+    ]
+
+    quickest = sorted(plans, key=lambda plan: _preference_sort_key(plan, "quickest"))
+    fewer_transfers = sorted(
+        plans,
+        key=lambda plan: _preference_sort_key(plan, "fewer_transfers"),
+    )
+
+    assert quickest[0].id == "fast-transfer"
+    assert fewer_transfers[0].id == "slow-direct"
+
+
+def test_otp_generic_place_names_are_localized() -> None:
+    assert _friendly_place_name("Origin", "fallback") == "sua localizacao"
+    assert _friendly_place_name("Destination", "fallback") == "o destino"
+    assert _friendly_place_name("Avenida Amazonas", "fallback") == "Avenida Amazonas"

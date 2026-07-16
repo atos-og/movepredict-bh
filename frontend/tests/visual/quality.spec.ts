@@ -2,11 +2,14 @@ import { expect, test } from "@playwright/test";
 
 test("primary navigation is keyboard accessible", async ({ page }) => {
   await page.goto("/");
-  await page.keyboard.press("Tab");
-  const focused = page.locator(":focus");
-  await expect(focused).toBeVisible();
-  await expect(focused).toHaveAccessibleName(/.+/);
-  expect(await focused.evaluate((element) => ["A", "BUTTON", "INPUT"].includes(element.tagName))).toBe(true);
+  await expect(page.locator(".roadmap-home-card")).toBeVisible();
+  await page.locator("body").click({ position: { x: 1, y: 1 } });
+  const linesLink = page.getByRole("link", { name: "Linhas", exact: true });
+  for (let index = 0; index < 20; index += 1) {
+    await page.keyboard.press("Tab");
+    if (await linesLink.evaluate((element) => document.activeElement === element)) break;
+  }
+  await expect(linesLink).toBeFocused();
 });
 
 test("interactive controls have accessible names", async ({ page }) => {

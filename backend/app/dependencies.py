@@ -5,7 +5,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.database import get_db
+from app.database import engine, get_db
 from app.services.geocoding import NominatimGeocodingService
 from app.services.gtfs_service import GtfsService
 from app.services.journey_planner import OpenTripPlannerService
@@ -15,7 +15,7 @@ from app.services.sql_providers import SqlArrivalPredictionProvider, SqlVehicleP
 
 @lru_cache
 def get_gtfs_service() -> GtfsService:
-    return GtfsService(get_settings().gtfs_data_dir)
+    return GtfsService(get_settings().gtfs_data_dir, engine=engine)
 
 
 def get_vehicle_position_provider(

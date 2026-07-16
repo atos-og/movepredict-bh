@@ -45,3 +45,33 @@ Esses itens nao devem ser marcados como concluidos apenas porque os scripts e pr
 Ainda depende de ambiente/operacao: executar soak test de varias horas, acumular a amostra minima
 de ETA e realizar o teste fisico em BH. Alguns nomes do feed PBH contem o caractere de substituicao
 Unicode na propria fonte; isso nao impede o roteamento, mas deve ser acompanhado com o provedor.
+
+## Auditoria funcional local - 15/07/2026
+
+Ambiente executado com Docker Compose: PostgreSQL/PostGIS, API, collector, retention,
+OpenTripPlanner e frontend. O banco continha 327 linhas, 9.914 pontos, 113.621 viagens,
+6.672.897 relacoes viagem/parada e 1.108 shapes. O collector processou um ciclo real da PBH
+com 21.316 registros recebidos e 21.291 posicoes unicas inseridas.
+
+- Backend: 36 testes passaram e 2 testes de integracao PostGIS opcionais foram pulados.
+- Ruff: lint e formatacao passaram em 58 arquivos.
+- Frontend: 5 testes unitarios passaram.
+- Playwright: 21 testes passaram (9 de teclado/responsividade e 12 snapshots do roadmap).
+- ESLint, TypeScript, build de producao Next.js e validacao do Docker Compose passaram.
+- Viewports 360x800, 375x812, 390x844, 414x896, 768x1024 e 1440x900 foram inspecionados
+  sem overflow horizontal.
+- Fluxos reais validados: 327 linhas, busca sem resultado, detalhe e mapa da linha 1170,
+  9.914 pontos, busca por endereco, previsoes por parada, favoritos e menu adicional.
+- Rota real Praca Sete -> Mineirao validada com geocodificacao, tres preferencias,
+  alternativas ordenadas, passo a passo, salvamento offline, inicio e encerramento da viagem.
+- Estados validados: localizacao ausente/bloqueada, sem veiculo, dados programados, vazio,
+  erro de linha e acompanhamento online. Nenhum erro ou aviso permaneceu no console.
+- Endpoints reais de linhas, itinerario, veiculos e previsoes responderam com HTTP 200.
+
+Correcoes feitas durante a auditoria: proxy de API de mesma origem para eliminar IP local
+obsoleto, consultas GTFS pesadas movidas para PostgreSQL com fallback CSV, ordenacao de rotas
+por preferencia, origem manual, remocao de distancias falsas sem geolocalizacao, estados de
+busca/erro recuperaveis e traducao dos nomes genericos do OTP.
+
+Continuam fora desta verificacao: soak test de varias horas, carga sustentada, publicacao de
+staging, metricas ETA com amostra minima e validacao fisica em Belo Horizonte.

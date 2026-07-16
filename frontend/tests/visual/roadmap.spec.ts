@@ -24,7 +24,10 @@ for (const [name, path] of screens) {
     await expect(page.locator("main")).toBeVisible();
     if (path.includes("linha/")) await expect(page.locator(".stop-timeline > div").first()).toBeVisible({ timeout: 45_000 });
     if (path === "/linhas") await expect(page.locator(".roadmap-line-list > a").first()).toBeVisible({ timeout: 10_000 });
-    if (path === "/pontos") await expect(page.locator(".nearby-stop-card").first()).toBeVisible({ timeout: 10_000 });
+    if (path === "/pontos") {
+      await page.getByPlaceholder("Buscar ponto ou endereco").fill("Avenida");
+      await expect(page.locator(".nearby-stop-card").first()).toBeVisible({ timeout: 10_000 });
+    }
     if (path.includes("screen=") || path.includes("map=1") || path === "/" || path === "/pontos") await page.waitForTimeout(900);
     await expect(page).toHaveScreenshot(`${name}.png`, { animations: "disabled", fullPage: true });
   });

@@ -107,7 +107,8 @@ class OpenTripPlannerService:
             )
         plan = (payload.get("data") or {}).get("plan") or {}
         itineraries = plan.get("itineraries") or []
-        return [_to_plan(item, preference, index) for index, item in enumerate(itineraries)]
+        plans = [_to_plan(item, preference, index) for index, item in enumerate(itineraries)]
+        return sorted(plans, key=lambda item: _preference_sort_key(item, preference))
 
 
 def _preference_weights(preference: JourneyPreference) -> tuple[int, float]:
@@ -116,6 +117,29 @@ def _preference_weights(preference: JourneyPreference) -> tuple[int, float]:
     if preference == "fewer_transfers":
         return 900, 2.5
     return 0, 2.0
+
+
+def _preference_sort_key(
+    plan: JourneyPlan,
+    preference: JourneyPreference,
+) -> tuple[int, int, int]:
+    if preference == "less_walking":
+        return (
+            plan.walking_distance_meters,
+            plan.total_duration_minutes,
+            plan.transfer_count,
+        )
+    if preference == "fewer_transfers":
+        return (
+            plan.transfer_count,
+            plan.total_duration_minutes,
+            plan.walking_distance_meters,
+        )
+    return (
+        plan.total_duration_minutes,
+        plan.transfer_count,
+        plan.walking_distance_meters,
+    )
 
 
 def _to_plan(item: dict, preference: JourneyPreference, index: int) -> JourneyPlan:
@@ -139,15 +163,11 @@ def _to_step(leg: dict, index: int) -> JourneyStep:
     from_place = leg.get("from") or {}
     to_place = leg.get("to") or {}
     route_name = route.get("shortName") or route.get("longName")
-    title = (
-        f"Caminhe ate {to_place.get('name') or 'o proximo ponto'}"
-        if is_walk
-        else f"Linha {route_name or 'onibus'}"
-    )
+    from_name = _friendly_place_name(from_place.get("name"), "sua localizacao")
+    to_name = _friendly_place_name(to_place.get("name"), "o proximo ponto")
+    title = f"Caminhe ate {to_name}" if is_walk else f"Linha {route_name or 'onibus'}"
     description = (
-        f"Saindo de {from_place.get('name') or 'sua localizacao'}"
-        if is_walk
-        else leg.get("headsign") or route.get("longName")
+        f"Saindo de {from_name}" if is_walk else leg.get("headsign") or route.get("longName")
     )
     return JourneyStep(
         id=f"leg-{index}",
@@ -188,6 +208,15 @@ def _place_to_stop(place: dict) -> JourneyStop | None:
             longitude=float(place.get("lon") or 0),
         ),
     )
+
+
+def _friendly_place_name(value: str | None, fallback: str) -> str:
+    normalized = str(value or "").strip()
+    aliases = {
+        "origin": "sua localizacao",
+        "destination": "o destino",
+    }
+    return aliases.get(normalized.casefold(), normalized or fallback)
 
 
 def _strip_feed_id(value: str | None) -> str | None:

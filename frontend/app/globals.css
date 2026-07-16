@@ -406,9 +406,16 @@ button:focus-visible, input:focus-visible, label:has(input:focus-visible) { outl
 }
 .roadmap-page { background: #fff; }
 .route-page:has(.best-route)::before,
-.route-details-page::before,
+.route-details-page.visual-preview::before,
 .active-route-page::before,
-.bus-map-page:has(.moving-bus-marker)::before { position: absolute; z-index: 1500; top: 7px; right: 8px; padding: 3px 6px; border-radius: 4px; background: #fff4cf; color: #725300; font-size: 8px; font-weight: 700; content: "Demonstração visual"; }
+.bus-map-page.visual-preview::before { position: absolute; z-index: 1500; top: 7px; right: 8px; padding: 3px 6px; border-radius: 4px; background: #fff4cf; color: #725300; font-size: 8px; font-weight: 700; content: "Demonstração visual"; }
+.manual-origin-search { width: 100%; display: grid; gap: 10px; }
+.manual-origin-search .list-search { grid-template-columns: auto 1fr auto; }
+.manual-origin-search .list-search button { border: 0; background: transparent; color: var(--blue); font: inherit; font-weight: 800; }
+.manual-origin-results { display: grid; max-height: 220px; overflow-y: auto; border-top: 1px solid var(--line); }
+.manual-origin-results > button { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 12px 2px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); text-align: left; }
+.manual-origin-results span { min-width: 0; display: grid; gap: 3px; }
+.manual-origin-results small { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
 .roadmap-page > .roadmap-header { position: absolute; }
 .roadmap-unavailable { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; color: #58708d; text-align: center; }
 .roadmap-unavailable h1 { margin: 14px 0 8px; color: #071a3d; font-size: 19px; }
@@ -483,11 +490,17 @@ button:focus-visible, input:focus-visible, label:has(input:focus-visible) { outl
 .roadmap-line-list small { color: #6b7b90; font-size: 9px; }
 .roadmap-list-skeleton { height: 56px; display: block; border-bottom: 1px solid #e7ecf2; background: linear-gradient(90deg, #f4f6f9 25%, #e9edf2 50%, #f4f6f9 75%); background-size: 200% 100%; animation: shimmer 1.3s infinite; }
 .roadmap-load-more { width: 100%; min-height: 42px; margin-top: 10px; border: 1px solid #c9d6e7; border-radius: 6px; background: #edf4ff; color: #0d3977; font-weight: 700; }
-.roadmap-inline-error { padding: 15px; color: #a13726; font-size: 11px; text-align: center; }
+.roadmap-inline-error { display: grid; justify-items: center; gap: 8px; padding: 15px; color: #a13726; font-size: 11px; text-align: center; }
+.roadmap-inline-error button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #d7a59b; border-radius: 6px; padding: 8px 10px; background: #fff; color: #8d291d; font: inherit; font-weight: 700; }
+.roadmap-empty-state { display: grid; justify-items: center; gap: 5px; padding: 42px 18px; color: var(--color-text-muted); text-align: center; }
+.roadmap-empty-state strong { color: var(--color-text); font-size: 13px; }
+.roadmap-empty-state span { font-size: 11px; }
 .nearby-content > header { padding: 14px 16px 8px; }
 .nearby-content h1 { margin: 0; font-size: 18px; }.nearby-content header p { margin: 2px 0 0; color: #68798e; font-size: 9px; }
 .nearby-map { position: relative; height: 205px; margin: 0 12px; overflow: hidden; border-radius: 7px; }
 .nearby-map .roadmap-map { inset: 0; }
+.nearby-content > .list-search { grid-template-columns: 20px minmax(0, 1fr) 30px; margin: 8px 12px 0; }
+.nearby-content > .list-search > button { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: #52657d; }
 .nearby-location-request { min-height: 34px; display: flex; align-items: center; gap: 6px; margin: 8px 16px 0; border: 0; background: transparent; color: #1261c9; font-size: 10px; font-weight: 700; }
 .nearby-cards { padding: 4px 12px; }
 .nearby-cards article, .nearby-stop-card { width: 100%; min-height: 82px; display: grid; grid-template-columns: 28px minmax(0, 1fr) 16px; align-items: center; gap: 7px; padding: 9px 5px; border: 0; border-bottom: 1px solid #e7ecf2; background: transparent; color: inherit; text-align: left; }

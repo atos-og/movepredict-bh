@@ -13,6 +13,7 @@
 - [x] Automatizar coleta de evidencias de smoke/soak test.
 - [x] Preparar criterios de lancamento, teste de campo e demonstracao.
 - [x] Provisionar OpenTripPlanner local sem credencial de API.
+- [x] Executar auditoria funcional local ponta a ponta com o ambiente completo.
 - [ ] Validar staging depois da autorizacao de URLs e secrets.
 - [ ] Concluir testes de carga e auditoria com ambiente completo.
 
@@ -50,5 +51,6 @@
 - [x] Implementar acompanhamento, recálculo e alerta de desembarque.
 - [x] Implementar rota offline e pacote completo de icones PWA.
 - [x] Preparar integracao de alertas operacionais GTFS-Realtime.
+- [x] Validar geocodificacao, OTP, detalhes, modo viagem e estados de falha localmente.
 - [ ] Validar no iPhone com trajeto real em Belo Horizonte.
 - [ ] Executar soak test com OTP, API, banco, collector e frontend juntos.

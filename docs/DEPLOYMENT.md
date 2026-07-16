@@ -17,7 +17,8 @@ Nenhum recurso e publicado automaticamente e nenhuma credencial fica no reposito
 - `MOVEPREDICT_GTFS_DATA_DIR`
 - `MOVEPREDICT_CORS_ORIGINS`
 - `MOVEPREDICT_REALTIME_POSITIONS_URL`
-- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_API_URL` (use `/api` no container e no staging)
+- `API_PROXY_TARGET` (endereco interno ou publico do FastAPI usado pelo proxy Next.js)
 
 Secrets devem existir somente no painel do provedor/GitHub Environment. O Nominatim publico
 nao e usado para autocomplete: a API envia apenas buscas confirmadas, com cache, User-Agent
@@ -45,6 +46,8 @@ explicita e provisionamento dos recursos externos.
 - `MOVEPREDICT_JOURNEY_PLANNER_URL`: GraphQL do OpenTripPlanner.
 - `MOVEPREDICT_GTFS_RT_ALERTS_URL`: fonte opcional de alertas; nao versionar se contiver chave.
 
-O frontend recebe apenas `NEXT_PUBLIC_API_URL`. Geocodificacao, OTP e alertas ficam atras da API.
+O navegador usa `NEXT_PUBLIC_API_URL=/api`. O Next.js encaminha as chamadas para
+`API_PROXY_TARGET`, evitando incorporar IPs locais no bundle. Geocodificacao, OTP e alertas
+continuam atras da API.
 O perfil Docker `routing` executa o OTP sem credencial e sem API paga. Gere o `graph.obj` com
 `scripts/prepare_otp.py` e o perfil `routing-tools` antes da primeira inicializacao.

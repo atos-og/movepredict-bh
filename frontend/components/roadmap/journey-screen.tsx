@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BellRing, BusFront, ChevronRight, Footprints, LocateFixed, MapPin, RefreshCw, Route, Wifi, WifiOff } from "lucide-react";
+import { BellRing, BusFront, ChevronRight, Footprints, LocateFixed, MapPin, RefreshCw, Route, Search, Wifi, WifiOff } from "lucide-react";
 import { AppHeader } from "@/components/roadmap/app-header";
 import { LineBadge } from "@/components/roadmap/line-badge";
 import { RoadmapMap } from "@/components/roadmap/roadmap-map";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { journeyPlannerProvider } from "@/lib/adapters/journey-planner";
+import { geocodingProvider } from "@/lib/adapters/geocoding";
 import { api } from "@/lib/api";
 import { saveJourneyOffline, storeActiveJourney } from "@/lib/journey-storage";
 import { previewJourney } from "@/lib/preview/roadmap-fixtures";
@@ -33,13 +34,15 @@ export function JourneyScreen({ details = false, preview = false, destination = 
   const [saved, setSaved] = useState(false);
   const [vehicles, setVehicles] = useState<VehiclePosition[]>([]);
   const [attempt, setAttempt] = useState(0);
+  const [manualOrigin, setManualOrigin] = useState<GeocodedDestination | null>(null);
   const selected = useMemo(() => plans.find((plan) => plan.id === selectedId) || plans[0] || null, [plans, selectedId]);
+  const origin = geo.coordinates || manualOrigin?.coordinates || null;
 
   useEffect(() => {
-    if (preview || !destination || !geo.coordinates) return;
+    if (preview || !destination || !origin) return;
     let active = true;
     queueMicrotask(() => setState("loading"));
-    void journeyPlannerProvider.plan(geo.coordinates, destination, preference).then((result) => {
+    void journeyPlannerProvider.plan(origin, destination, preference).then((result) => {
       if (!active) return;
       if (result.status === "unavailable") { setPlans([]); setState("unavailable"); return; }
       setPlans(result.plans);
@@ -47,7 +50,7 @@ export function JourneyScreen({ details = false, preview = false, destination = 
       setState(result.plans.length ? "ready" : "empty");
     });
     return () => { active = false; };
-  }, [attempt, destination, geo.coordinates, preference, preview]);
+  }, [attempt, destination, origin, preference, preview]);
 
   const selectedRouteId = selected?.lineIds[0];
   useEffect(() => {
@@ -63,13 +66,13 @@ export function JourneyScreen({ details = false, preview = false, destination = 
 
   if (preview) return details ? <RouteDetails plan={previewJourney} preview /> : <PreviewRoute />;
   if (!destination) return <Unavailable title="Escolha um destino" message="Volte ao inicio e informe para onde deseja ir." />;
-  if (!geo.coordinates) return <LocationRequired destination={destination.label} geo={geo} />;
+  if (!origin) return <LocationRequired destination={destination.label} geo={geo} onManualOrigin={setManualOrigin} />;
   if (state === "loading" || state === "idle") return <LoadingRoute destination={destination.label} />;
   if (state === "unavailable") return <Unavailable title="Planejador temporariamente indisponivel" message="A busca funcionou, mas o OpenTripPlanner nao respondeu. Sua localizacao e seu destino foram preservados." retry={() => setAttempt((value) => value + 1)} />;
   if (state === "empty") return <Unavailable title="Nenhuma rota encontrada" message="Nao encontramos uma combinacao de transporte publico para este destino neste horario." />;
   if (!selected) return null;
 
-  const stored = { plan: selected, origin: geo.coordinates, destination, savedAt: new Date().toISOString() };
+  const stored = { plan: selected, origin, destination, savedAt: new Date().toISOString() };
   function startJourney() {
     storeActiveJourney(stored);
     if ("Notification" in window && Notification.permission === "default") void Notification.requestPermission();
@@ -80,7 +83,7 @@ export function JourneyScreen({ details = false, preview = false, destination = 
 
   return <main className="roadmap-page journey-planner-page">
     <AppHeader title={destination.label} backHref="/" />
-    <RoadmapMap userLocation={geo.coordinates} journeyGeometry={selected.geometry} vehicles={vehicles} showVehicles />
+    <RoadmapMap userLocation={origin} journeyGeometry={selected.geometry} vehicles={vehicles} showVehicles />
     <section className="journey-bottom-sheet" aria-live="polite">
       <div className="sheet-handle" aria-hidden="true" />
       <div className="journey-preferences" aria-label="Preferencia de rota">
@@ -97,8 +100,29 @@ export function JourneyScreen({ details = false, preview = false, destination = 
   </main>;
 }
 
-function LocationRequired({ destination, geo }: { destination: string; geo: ReturnType<typeof useGeolocation> }) {
-  return <main className="roadmap-page route-page"><AppHeader title={destination} backHref="/" /><section className="roadmap-unavailable"><LocateFixed size={30} /><h1>De onde voce esta saindo?</h1><p>Use sua localizacao para encontrarmos caminhada, ponto, linha e desembarque automaticamente.</p><button className="roadmap-primary" onClick={geo.requestLocation} disabled={geo.status === "requesting"}><LocateFixed size={18} />{geo.status === "requesting" ? "Obtendo localizacao..." : "Usar minha localizacao"}</button>{geo.status === "denied" && <p className="state-warning">Permissao negada. Libere a localizacao nas configuracoes do navegador.</p>}{["unavailable", "timeout", "unsupported"].includes(geo.status) && <p className="state-warning">Nao foi possivel obter a localizacao neste dispositivo. Tente novamente em uma conexao segura (HTTPS).</p>}</section></main>;
+function LocationRequired({ destination, geo, onManualOrigin }: { destination: string; geo: ReturnType<typeof useGeolocation>; onManualOrigin: (origin: GeocodedDestination) => void }) {
+  const [manual, setManual] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<GeocodedDestination[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState(false);
+
+  async function searchOrigin(event: FormEvent) {
+    event.preventDefault();
+    if (query.trim().length < 2) return;
+    setSearching(true);
+    setSearchError(false);
+    const response = await geocodingProvider.search(query);
+    setSearching(false);
+    if (response.status === "unavailable") {
+      setResults([]);
+      setSearchError(true);
+      return;
+    }
+    setResults(response.data);
+  }
+
+  return <main className="roadmap-page route-page"><AppHeader title={destination} backHref="/" /><section className="roadmap-unavailable"><LocateFixed size={30} /><h1>De onde voce esta saindo?</h1><p>Use sua localizacao para encontrarmos caminhada, ponto, linha e desembarque automaticamente.</p><button className="roadmap-primary" onClick={geo.requestLocation} disabled={geo.status === "requesting"}><LocateFixed size={18} />{geo.status === "requesting" ? "Obtendo localizacao..." : "Usar minha localizacao"}</button><button className="roadmap-secondary" onClick={() => setManual((value) => !value)}><MapPin size={17} />Informar outro ponto de partida</button>{manual && <div className="manual-origin-search"><form className="list-search" onSubmit={searchOrigin}><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar origem em Belo Horizonte" /><button type="submit" disabled={searching || query.trim().length < 2}>{searching ? "Buscando" : "Buscar"}</button></form>{searchError && <p className="state-warning">Busca de origem indisponivel. Tente novamente.</p>}{!searching && query.trim().length >= 2 && !searchError && results.length === 0 && <p className="state-warning">Nenhuma origem encontrada.</p>}<div className="manual-origin-results">{results.map((result) => <button key={result.id} onClick={() => onManualOrigin(result)}><MapPin size={16} /><span><strong>{result.label}</strong><small>{result.description}</small></span><ChevronRight size={16} /></button>)}</div></div>}{geo.status === "denied" && <p className="state-warning">Permissao negada. Libere a localizacao nas configuracoes do navegador ou informe outra origem.</p>}{["unavailable", "timeout", "unsupported"].includes(geo.status) && <p className="state-warning">Nao foi possivel obter a localizacao neste dispositivo. Informe outra origem ou tente novamente em HTTPS.</p>}</section></main>;
 }
 
 function LoadingRoute({ destination }: { destination: string }) {
@@ -122,7 +146,7 @@ function arrivalCopy(plan: JourneyPlan): string {
 }
 
 function RouteDetails({ plan, preview = false, onStart }: { plan: JourneyPlan; preview?: boolean; onStart?: () => void }) {
-  return <main className="roadmap-page route-details-page"><header className="route-summary-bar"><span><strong>{plan.totalDurationMinutes} min</strong><small>{plan.destinationLabel}</small></span><span>{plan.estimatedArrival ? `Chegada ${formatTime(plan.estimatedArrival)}` : "Chegada programada"}</span></header><JourneySteps plan={plan} /><button className="roadmap-primary route-bottom-action" onClick={onStart} disabled={preview && !onStart}><BellRing size={17} />{preview ? "Visualizacao da navegacao" : "Iniciar e avisar para descer"}</button></main>;
+  return <main className={`roadmap-page route-details-page ${preview ? "visual-preview" : ""}`}><header className="route-summary-bar"><span><strong>{plan.totalDurationMinutes} min</strong><small>{plan.destinationLabel}</small></span><span>{plan.estimatedArrival ? `Chegada ${formatTime(plan.estimatedArrival)}` : "Chegada programada"}</span></header><JourneySteps plan={plan} /><button className="roadmap-primary route-bottom-action" onClick={onStart} disabled={preview && !onStart}><BellRing size={17} />{preview ? "Visualizacao da navegacao" : "Iniciar e avisar para descer"}</button></main>;
 }
 
 function JourneySteps({ plan, compact = false }: { plan: JourneyPlan; compact?: boolean }) {
