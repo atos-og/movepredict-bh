@@ -105,7 +105,7 @@ function LiveJourney({ savedId }: { savedId: string | null }) {
     return () => { active = false; };
   }, [online, routeId]);
 
-  if (!journey) return <main className="roadmap-page"><AppHeader title="Viagem" backHref="/" /><section className="roadmap-unavailable"><BusFront size={30} /><h1>Nenhuma viagem em andamento</h1><p>Escolha um destino, confira a rota e toque em iniciar viagem.</p><Link className="roadmap-primary" href="/">Planejar uma viagem</Link></section></main>;
+  if (!journey) return <main className="roadmap-page"><AppHeader title="Viagem" backHref="/" /><section className="roadmap-unavailable"><BusFront size={30} /><h2>Nenhuma viagem em andamento</h2><p>Escolha um destino, confira a rota e toque em iniciar viagem.</p><Link className="roadmap-primary" href="/">Planejar uma viagem</Link></section></main>;
 
   const plan = journey.plan;
   const currentPosition = position || journey.origin;
@@ -114,6 +114,7 @@ function LiveJourney({ savedId }: { savedId: string | null }) {
   const remainingStops = remainingStopCount(currentPosition, plan);
 
   return <main className="roadmap-page active-live-page">
+    <h1 className="sr-only">Viagem em andamento para {journey.destination.label}</h1>
     <RoadmapMap userLocation={currentPosition} journeyGeometry={plan.geometry} vehicles={vehicles} showVehicles />
     <div className="journey-live-status">{online ? <><Signal size={14} />Online</> : <><SignalZero size={14} />Rota offline</>}{recalculating && <><RefreshCw className="spin" size={14} />Recalculando</>}</div>
     <section className="active-journey-sheet">
@@ -186,6 +187,6 @@ function nextInstruction(step: JourneyStep): string {
 }
 
 function PreviewJourney({ map }: { map: boolean }) {
-  if (map) return <main className="roadmap-page bus-map-page visual-preview"><RoadmapMap userLocation={{ latitude: -19.931, longitude: -43.941 }} vehicles={[previewVehicle]} showVehicles /><div className="map-floating-actions"><button aria-label="Minha localizacao"><LocateFixed size={19} /></button><button aria-label="Camadas"><Layers3 size={19} /></button></div><section className="bus-map-card"><div><LineBadge value="1170" /><span><strong>Linha 1170</strong><small>Proximo onibus em horario programado</small></span></div><BusFront size={22} /></section></main>;
-  return <main className="roadmap-page active-route-page"><header className="active-line-header"><BusFront size={20} /><span><strong>Linha 1170</strong><small>Santa Lucia / Mangabeiras</small></span></header><section className="next-stop"><small>Proxima parada</small><strong>Savassi</strong><span>09:28</span><p>Partida programada - em 4 paradas</p></section><Link className="roadmap-primary route-bottom-action" href="/viagem?preview=1&map=1">Acompanhar no mapa</Link></main>;
+  if (map) return <main className="roadmap-page bus-map-page visual-preview"><h1 className="sr-only">Mapa da viagem na linha 1170</h1><RoadmapMap userLocation={{ latitude: -19.931, longitude: -43.941 }} vehicles={[previewVehicle]} showVehicles /><div className="map-floating-actions"><button aria-label="Minha localizacao"><LocateFixed size={19} /></button><button aria-label="Camadas"><Layers3 size={19} /></button></div><section className="bus-map-card"><div><LineBadge value="1170" /><span><strong>Linha 1170</strong><small>Proximo onibus em horario programado</small></span></div><BusFront size={22} /></section></main>;
+  return <main className="roadmap-page active-route-page"><h1 className="sr-only">Viagem em andamento na linha 1170</h1><header className="active-line-header"><BusFront size={20} /><span><strong>Linha 1170</strong><small>Santa Lucia / Mangabeiras</small></span></header><section className="next-stop"><small>Proxima parada</small><strong>Savassi</strong><span>09:28</span><p>Partida programada - em 4 paradas</p></section><Link className="roadmap-primary route-bottom-action" href="/viagem?preview=1&map=1">Acompanhar no mapa</Link></main>;
 }

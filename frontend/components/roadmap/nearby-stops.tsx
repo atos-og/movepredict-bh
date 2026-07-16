@@ -1,20 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronRight, LocateFixed, MapPin, Search, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { ChevronRight, LocateFixed, MapPin, Search, Star, X } from "lucide-react";
 import { AppHeader } from "@/components/roadmap/app-header";
 import { RoadmapMap } from "@/components/roadmap/roadmap-map";
 import { RoadmapNavigation } from "@/components/roadmap/mobile-navigation";
 import { useGeolocation } from "@/hooks/use-geolocation";
+import { useFavorites } from "@/hooks/use-favorites";
+import { useRecentSelections } from "@/hooks/use-recent-selections";
 import { useArrivals } from "@/hooks/use-realtime";
 import { api } from "@/lib/api";
 import { boundsAround, distanceInMeters, formatDistance, nearestStops } from "@/lib/geo";
+import { toRecentStop } from "@/lib/selections";
 import type { Stop } from "@/types/transit";
 
 type LoadState = "idle" | "loading" | "ready" | "empty" | "error";
 
 export function NearbyStops() {
+  const searchParams = useSearchParams();
   const geo = useGeolocation();
+  const favorites = useFavorites();
+  const { remember } = useRecentSelections(20);
   const [stops, setStops] = useState<Stop[]>([]);
   const [query, setQuery] = useState("");
   const [loadState, setLoadState] = useState<LoadState>("idle");
@@ -22,6 +29,33 @@ export function NearbyStops() {
   const [routeLabels, setRouteLabels] = useState<Record<string, string>>({});
   const origin = geo.coordinates;
   const realtime = useArrivals(selected?.stop_id || null);
+  const requestedStopId = searchParams.get("stop");
+
+  function selectStop(stop: Stop) {
+    setSelected(stop);
+    remember(toRecentStop(stop));
+  }
+
+  useEffect(() => {
+    if (!requestedStopId) return;
+    let active = true;
+    queueMicrotask(() => {
+      if (active) setLoadState("loading");
+    });
+    void api.getStop(requestedStopId)
+      .then((result) => {
+        if (!active) return;
+        const stop = result.data;
+        setStops((current) => [stop, ...current.filter((item) => item.stop_id !== stop.stop_id)]);
+        setSelected(stop);
+        setLoadState("ready");
+        remember(toRecentStop(stop));
+      })
+      .catch(() => {
+        if (active) setLoadState("error");
+      });
+    return () => { active = false; };
+  }, [remember, requestedStopId]);
 
   useEffect(() => {
     let active = true;
@@ -92,7 +126,7 @@ export function NearbyStops() {
       <AppHeader title={origin ? "Pontos proximos" : "Encontrar pontos"} backHref="/" />
       <section className="nearby-content">
         <header>
-          <h1>{origin ? "Pontos proximos" : "Encontre um ponto"}</h1>
+          <h2>{origin ? "Pontos proximos" : "Encontre um ponto"}</h2>
           <p>{origin ? "Raio de ate 1,5 km" : "Dados oficiais da PBH"}</p>
         </header>
         <div className="nearby-map">
@@ -145,7 +179,7 @@ export function NearbyStops() {
               <button
                 className="nearby-stop-card"
                 key={stop.stop_id}
-                onClick={() => setSelected(stop)}
+                onClick={() => selectStop(stop)}
               >
                 <MapPin size={18} />
                 <span>
@@ -166,9 +200,17 @@ export function NearbyStops() {
               <strong>{selected.stop_name}</strong>
               <small>Ponto {selected.stop_code || selected.stop_id}</small>
             </span>
-            <button onClick={() => setSelected(null)} aria-label="Fechar previsoes">
-              <X size={18} />
-            </button>
+            <div className="stop-sheet-actions">
+              <button
+                onClick={() => favorites.toggle(toRecentStop(selected))}
+                aria-label={favorites.isFavorite(toRecentStop(selected)) ? "Remover ponto dos favoritos" : "Adicionar ponto aos favoritos"}
+              >
+                <Star size={18} fill={favorites.isFavorite(toRecentStop(selected)) ? "currentColor" : "none"} />
+              </button>
+              <button onClick={() => setSelected(null)} aria-label="Fechar previsoes">
+                <X size={18} />
+              </button>
+            </div>
           </header>
           {realtime.state === "loading" && <p>Buscando previsoes...</p>}
           {realtime.state === "offline" && <p>Previsoes temporariamente indisponiveis.</p>}

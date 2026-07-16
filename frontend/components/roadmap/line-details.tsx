@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, LocateFixed, MapPin } from "lucide-react";
+import { ChevronLeft, LocateFixed, MapPin, Star } from "lucide-react";
 import { AppHeader } from "@/components/roadmap/app-header";
 import { LineBadge } from "@/components/roadmap/line-badge";
 import { RoadmapMap } from "@/components/roadmap/roadmap-map";
 import { useVehicles } from "@/hooks/use-realtime";
+import { useFavorites } from "@/hooks/use-favorites";
+import { useRecentSelections } from "@/hooks/use-recent-selections";
 import { api } from "@/lib/api";
+import { toRecentLine } from "@/lib/selections";
 import type { Line, LineRoute, LineStop } from "@/types/transit";
 
 export function LineDetails({ routeId }: { routeId: string }) {
+  const favorites = useFavorites();
+  const { remember } = useRecentSelections(20);
   const [line, setLine] = useState<Line | null>(null);
   const [stops, setStops] = useState<LineStop[]>([]);
   const [route, setRoute] = useState<LineRoute | null>(null);
@@ -53,6 +58,7 @@ export function LineDetails({ routeId }: { routeId: string }) {
     ]).then(([lineResult, stopsResult, routeResult]) => {
       if (!active) return;
       setLine(lineResult.data);
+      remember(toRecentLine(lineResult.data));
       setStops(stopsResult.data);
       setRoute(routeResult.data);
     }).catch(() => {
@@ -61,7 +67,7 @@ export function LineDetails({ routeId }: { routeId: string }) {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [routeId, direction]);
+  }, [routeId, direction, remember]);
 
   const realtimeLabel = realtime.state === "live"
     ? `${realtime.vehicles.length} veiculo(s) atualizado(s) automaticamente`
@@ -74,6 +80,7 @@ export function LineDetails({ routeId }: { routeId: string }) {
 
   if (mapOpen) {
     return <main className="roadmap-page bus-map-page">
+      <h1 className="sr-only">Mapa da linha {line?.route_short_name || routeId}</h1>
       <RoadmapMap lineStops={stops} route={route} vehicles={realtime.vehicles} showVehicles />
       <button className="line-map-back" onClick={() => setMapOpen(false)}><ChevronLeft size={20} />Detalhes</button>
       <section className="bus-map-card"><div><LineBadge value={line?.route_short_name || routeId} /><span><strong>{line?.route_long_name || `Linha ${routeId}`}</strong><small>{realtimeLabel}</small></span></div></section>
@@ -83,7 +90,7 @@ export function LineDetails({ routeId }: { routeId: string }) {
   return <main className="roadmap-page line-detail-page">
     <AppHeader title="Detalhes da linha" backHref="/linhas" />
     <section className="line-detail-content">
-      <header><LineBadge value={line?.route_short_name || routeId} /><span><strong>{line?.route_long_name || (loading ? "Carregando itinerario" : `Linha ${routeId}`)}</strong><small>Trajeto e paradas oficiais (GTFS)</small></span></header>
+      <header><LineBadge value={line?.route_short_name || routeId} /><span><h2>{line?.route_long_name || (loading ? "Carregando itinerario" : `Linha ${routeId}`)}</h2><small>Trajeto e paradas oficiais (GTFS)</small></span>{line && <button className="roadmap-icon-button" onClick={() => favorites.toggle(toRecentLine(line))} aria-label={favorites.isFavorite(toRecentLine(line)) ? "Remover linha dos favoritos" : "Adicionar linha aos favoritos"}><Star size={18} fill={favorites.isFavorite(toRecentLine(line)) ? "currentColor" : "none"} /></button>}</header>
       {availableDirections.length > 1 && <div className="roadmap-direction-tabs">{availableDirections.includes("0") && <button className={displayedDirection === "0" ? "active" : ""} onClick={() => changeDirection("0")}>Ida</button>}{availableDirections.includes("1") && <button className={displayedDirection === "1" ? "active" : ""} onClick={() => changeDirection("1")}>Volta</button>}</div>}
       <div className="line-location-note"><LocateFixed size={16} /><span><strong>Monitoramento da linha</strong><small>{realtimeLabel}</small></span></div>
       {error && <div className="roadmap-inline-error">{error}</div>}
