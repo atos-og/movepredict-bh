@@ -1,0 +1,7 @@
+{
+  "routingDefaults": {
+    "locale": "pt_BR",
+    "numItineraries": 3,
+    "transferSlack": "PT2M"
+  }
+}

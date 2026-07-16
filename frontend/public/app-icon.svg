@@ -1,12 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#102a43"/>
-  <path d="M123 326V196c0-42 34-76 76-76h114c42 0 76 34 76 76v130" fill="#18b6a4"/>
-  <rect x="144" y="157" width="224" height="142" rx="30" fill="#f4f8fb"/>
-  <path d="M174 200h164v64H174z" fill="#9ee9df"/>
-  <circle cx="190" cy="335" r="38" fill="#f4f8fb"/>
-  <circle cx="322" cy="335" r="38" fill="#f4f8fb"/>
-  <circle cx="190" cy="335" r="17" fill="#102a43"/>
-  <circle cx="322" cy="335" r="17" fill="#102a43"/>
-  <path d="M256 82c-37 0-67 30-67 67h28c0-21 18-39 39-39s39 18 39 39h28c0-37-30-67-67-67Z" fill="#ffcb45"/>
-  <path d="M112 386h288" stroke="#ffcb45" stroke-width="24" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">MovePredict BH</title>
+  <desc id="desc">Um M desenhado como uma linha de trajeto com um ponto de localizacao laranja.</desc>
+  <rect x="28" y="28" width="456" height="456" rx="108" fill="#061a40"/>
+  <path d="M116 372V184c0-25 31-37 48-19l92 101 92-101c17-18 48-6 48 19v188" fill="none" stroke="#fff" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="396" cy="148" r="47" fill="#fff"/>
+  <path d="M396 105c-25 0-45 20-45 45 0 34 45 78 45 78s45-44 45-78c0-25-20-45-45-45Z" fill="#f26b21"/>
+  <circle cx="396" cy="150" r="15" fill="#061a40"/>
+  <circle cx="116" cy="372" r="14" fill="#f26b21"/>
 </svg>

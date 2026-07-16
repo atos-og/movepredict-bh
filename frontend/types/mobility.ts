@@ -42,18 +42,31 @@ export type GeocodingSearchResult =
   | { status: "available"; data: GeocodedDestination[] }
   | { status: "unavailable"; data: [] };
 
+export type JourneyPreference = "quickest" | "less_walking" | "fewer_transfers";
+
+export type JourneyStop = {
+  stopId: string;
+  name: string;
+  coordinates: Coordinates;
+};
+
 export type JourneyPlan = {
   id: string;
+  preference: JourneyPreference;
   destinationLabel: string;
   totalDurationMinutes: number;
   walkingDurationMinutes: number;
+  walkingDistanceMeters: number;
   lineIds: string[];
   lineLabel: string;
   headsign: string;
   transferCount: number;
   scheduledDeparture: string | null;
   estimatedArrival: string | null;
-  geometry: [number, number][] | null;
+  geometry: Coordinates[];
+  realtimeStatus: "live" | "scheduled" | "unavailable";
+  nextBusArrival: string | null;
+  uncertaintySeconds: number | null;
   steps: JourneyStep[];
 };
 
@@ -63,6 +76,17 @@ export type JourneyStep = {
   title: string;
   description: string | null;
   durationMinutes: number | null;
+  distanceMeters: number;
+  routeId: string | null;
+  routeShortName: string | null;
+  tripId: string | null;
+  headsign: string | null;
+  fromStop: JourneyStop | null;
+  toStop: JourneyStop | null;
+  intermediateStops: JourneyStop[];
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  geometry: Coordinates[];
 };
 
 export type JourneyPlanningResult =
@@ -74,5 +98,54 @@ export interface DestinationProvider {
 }
 
 export interface JourneyPlannerProvider {
-  plan(origin: Coordinates, destination: GeocodedDestination): Promise<JourneyPlanningResult>;
+  plan(
+    origin: Coordinates,
+    destination: GeocodedDestination,
+    preference?: JourneyPreference,
+  ): Promise<JourneyPlanningResult>;
 }
+
+export type GeocodingApiResponse = {
+  data: Array<{
+    id: string;
+    kind: GeocodedDestinationKind;
+    label: string;
+    description: string;
+    coordinates: Coordinates;
+  }>;
+  meta: { provider: "nominatim"; attribution: string; cached: boolean };
+};
+
+export type JourneyPlanApiResponse = {
+  data: Array<{
+    id: string;
+    preference: JourneyPreference;
+    total_duration_minutes: number;
+    walking_duration_minutes: number;
+    walking_distance_meters: number;
+    transfer_count: number;
+    scheduled_departure: string | null;
+    estimated_arrival: string | null;
+    steps: Array<{
+      id: string;
+      kind: "walk" | "bus";
+      title: string;
+      description: string | null;
+      duration_minutes: number;
+      distance_meters: number;
+      route_id: string | null;
+      route_short_name: string | null;
+      route_long_name: string | null;
+      trip_id: string | null;
+      headsign: string | null;
+      from_stop: { stop_id: string; name: string; coordinates: Coordinates } | null;
+      to_stop: { stop_id: string; name: string; coordinates: Coordinates } | null;
+      intermediate_stops: Array<{ stop_id: string; name: string; coordinates: Coordinates }>;
+      scheduled_start: string | null;
+      scheduled_end: string | null;
+      geometry: string | null;
+      realtime: boolean;
+    }>;
+  }>;
+  meta: { provider: "opentripplanner"; realtime_applied: boolean; generated_at: string };
+};

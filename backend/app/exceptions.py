@@ -16,3 +16,13 @@ class ResourceNotFoundError(AppError):
 class DataSourceUnavailableError(AppError):
     status_code = 503
     code = "data_source_unavailable"
+
+
+class GeocodingUnavailableError(AppError):
+    status_code = 503
+    code = "geocoding_unavailable"
+
+
+class JourneyPlannerUnavailableError(AppError):
+    status_code = 503
+    code = "journey_planner_unavailable"

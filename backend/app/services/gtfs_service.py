@@ -1,14 +1,23 @@
 import csv
+import json
+import logging
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
+
+from sqlalchemy import Engine, text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.exceptions import DataSourceUnavailableError, ResourceNotFoundError
 from app.schemas.transit import GeoJsonLineString, Line, LineRoute, LineStop, Stop, Trip
 
+logger = logging.getLogger("movepredict.gtfs")
+
 
 class GtfsService:
-    def __init__(self, data_dir: Path) -> None:
+    def __init__(self, data_dir: Path, engine: Engine | None = None) -> None:
         self.data_dir = data_dir
+        self.engine = engine
 
     def list_lines(
         self,
@@ -88,6 +97,15 @@ class GtfsService:
         offset: int = 0,
     ) -> tuple[list[Trip], int]:
         self.get_line(route_id)
+        database_result = self._list_trips_from_database(
+            route_id,
+            direction_id=direction_id,
+            limit=limit,
+            offset=offset,
+        )
+        if database_result is not None:
+            return database_result
+
         trips = [
             self._trip_from_row(row)
             for row in self._iter_rows("trips.txt")
@@ -97,6 +115,78 @@ class GtfsService:
         trips.sort(key=lambda trip: trip.trip_id)
         return trips[offset : offset + limit], len(trips)
 
+    def _list_trips_from_database(
+        self,
+        route_id: str,
+        *,
+        direction_id: str | None,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[Trip], int] | None:
+        if self.engine is None:
+            return None
+
+        conditions = ["route.gtfs_route_id = :route_id"]
+        parameters: dict[str, str | int] = {
+            "route_id": route_id,
+            "limit": limit,
+            "offset": offset,
+        }
+        if direction_id is not None:
+            conditions.append("trip.direction_id = :direction_id")
+            parameters["direction_id"] = int(direction_id)
+        where_clause = " AND ".join(conditions)
+
+        try:
+            with self.engine.connect() as connection:
+                total = connection.execute(
+                    text(
+                        f"""
+                        SELECT COUNT(*)
+                        FROM transit_trips AS trip
+                        JOIN transit_routes AS route ON route.id = trip.route_id
+                        WHERE {where_clause}
+                        """
+                    ),
+                    parameters,
+                ).scalar_one()
+                rows = connection.execute(
+                    text(
+                        f"""
+                        SELECT
+                            route.gtfs_route_id,
+                            trip.service_id,
+                            trip.gtfs_trip_id,
+                            trip.headsign,
+                            trip.direction_id,
+                            trip.shape_id
+                        FROM transit_trips AS trip
+                        JOIN transit_routes AS route ON route.id = trip.route_id
+                        WHERE {where_clause}
+                        ORDER BY trip.gtfs_trip_id
+                        LIMIT :limit OFFSET :offset
+                        """
+                    ),
+                    parameters,
+                ).mappings()
+                trips = [
+                    Trip(
+                        route_id=row["gtfs_route_id"],
+                        service_id=row["service_id"],
+                        trip_id=row["gtfs_trip_id"],
+                        trip_headsign=row["headsign"],
+                        direction_id=(
+                            str(row["direction_id"]) if row["direction_id"] is not None else None
+                        ),
+                        shape_id=row["shape_id"],
+                    )
+                    for row in rows
+                ]
+        except SQLAlchemyError as error:
+            logger.warning("database_trips_fallback route_id=%s error=%s", route_id, error)
+            return None
+        return trips, total
+
     def list_line_stops(
         self,
         route_id: str,
@@ -104,6 +194,14 @@ class GtfsService:
         direction_id: str | None = None,
         trip_id: str | None = None,
     ) -> list[LineStop]:
+        database_result = self._list_line_stops_from_database(
+            route_id,
+            direction_id=direction_id,
+            trip_id=trip_id,
+        )
+        if database_result is not None:
+            return database_result
+
         trip = self._select_trip(route_id, direction_id=direction_id, trip_id=trip_id)
         stop_times = [
             row for row in self._iter_rows("stop_times.txt") if row.get("trip_id") == trip.trip_id
@@ -138,6 +236,14 @@ class GtfsService:
         direction_id: str | None = None,
         trip_id: str | None = None,
     ) -> LineRoute:
+        database_result = self._get_line_route_from_database(
+            route_id,
+            direction_id=direction_id,
+            trip_id=trip_id,
+        )
+        if database_result is not None:
+            return database_result
+
         trip = self._select_trip(route_id, direction_id=direction_id, trip_id=trip_id)
         if not trip.shape_id:
             raise ResourceNotFoundError(
@@ -167,6 +273,150 @@ class GtfsService:
             direction_id=trip.direction_id,
             geometry=GeoJsonLineString(coordinates=coordinates),
         )
+
+    def _list_line_stops_from_database(
+        self,
+        route_id: str,
+        *,
+        direction_id: str | None,
+        trip_id: str | None,
+    ) -> list[LineStop] | None:
+        trip = self._select_database_trip(
+            route_id,
+            direction_id=direction_id,
+            trip_id=trip_id,
+        )
+        if trip is None or self.engine is None:
+            return None
+
+        try:
+            with self.engine.connect() as connection:
+                rows = connection.execute(
+                    text(
+                        """
+                        SELECT
+                            stop.gtfs_stop_id,
+                            stop.name,
+                            stop.latitude,
+                            stop.longitude,
+                            trip_stop.stop_sequence,
+                            trip_stop.scheduled_arrival_seconds,
+                            trip_stop.scheduled_departure_seconds
+                        FROM trip_stops AS trip_stop
+                        JOIN transit_stops AS stop ON stop.id = trip_stop.stop_id
+                        WHERE trip_stop.trip_id = :trip_database_id
+                        ORDER BY trip_stop.stop_sequence
+                        """
+                    ),
+                    {"trip_database_id": trip["database_id"]},
+                ).mappings()
+                result = [
+                    LineStop(
+                        stop_id=row["gtfs_stop_id"],
+                        stop_code=None,
+                        stop_name=row["name"],
+                        stop_lat=row["latitude"],
+                        stop_lon=row["longitude"],
+                        wheelchair_boarding=None,
+                        stop_sequence=row["stop_sequence"],
+                        arrival_time=self._format_gtfs_time(row["scheduled_arrival_seconds"]),
+                        departure_time=self._format_gtfs_time(row["scheduled_departure_seconds"]),
+                    )
+                    for row in rows
+                ]
+        except SQLAlchemyError as error:
+            logger.warning("database_line_stops_fallback route_id=%s error=%s", route_id, error)
+            return None
+        return result or None
+
+    def _get_line_route_from_database(
+        self,
+        route_id: str,
+        *,
+        direction_id: str | None,
+        trip_id: str | None,
+    ) -> LineRoute | None:
+        trip = self._select_database_trip(
+            route_id,
+            direction_id=direction_id,
+            trip_id=trip_id,
+        )
+        if trip is None or self.engine is None or not trip["shape_id"]:
+            return None
+
+        try:
+            with self.engine.connect() as connection:
+                geometry_json = connection.execute(
+                    text(
+                        """
+                        SELECT ST_AsGeoJSON(path)
+                        FROM transit_shapes
+                        WHERE gtfs_shape_id = :shape_id
+                        """
+                    ),
+                    {"shape_id": trip["shape_id"]},
+                ).scalar_one_or_none()
+        except SQLAlchemyError as error:
+            logger.warning("database_line_route_fallback route_id=%s error=%s", route_id, error)
+            return None
+        if not geometry_json:
+            return None
+
+        geometry = json.loads(geometry_json)
+        return LineRoute(
+            route_id=route_id,
+            trip_id=trip["trip_id"],
+            shape_id=trip["shape_id"],
+            direction_id=(str(trip["direction_id"]) if trip["direction_id"] is not None else None),
+            geometry=GeoJsonLineString(coordinates=geometry["coordinates"]),
+        )
+
+    def _select_database_trip(
+        self,
+        route_id: str,
+        *,
+        direction_id: str | None,
+        trip_id: str | None,
+    ) -> dict[str, Any] | None:
+        if self.engine is None:
+            return None
+
+        conditions = ["route.gtfs_route_id = :route_id"]
+        parameters: dict[str, str | int] = {"route_id": route_id}
+        if direction_id is not None:
+            conditions.append("trip.direction_id = :direction_id")
+            parameters["direction_id"] = int(direction_id)
+        if trip_id is not None:
+            conditions.append("trip.gtfs_trip_id = :trip_id")
+            parameters["trip_id"] = trip_id
+
+        try:
+            with self.engine.connect() as connection:
+                row = (
+                    connection.execute(
+                        text(
+                            f"""
+                        SELECT
+                            trip.id AS database_id,
+                            trip.gtfs_trip_id AS trip_id,
+                            trip.shape_id,
+                            trip.direction_id
+                        FROM transit_trips AS trip
+                        JOIN transit_routes AS route ON route.id = trip.route_id
+                        WHERE {" AND ".join(conditions)}
+                        ORDER BY trip.id
+                        LIMIT 1
+                        """
+                        ),
+                        parameters,
+                    )
+                    .mappings()
+                    .first()
+                )
+        except SQLAlchemyError as error:
+            logger.warning("database_trip_fallback route_id=%s error=%s", route_id, error)
+            return None
+        return dict(row) if row is not None else None
 
     def _select_trip(
         self,
@@ -249,3 +499,11 @@ class GtfsService:
     @staticmethod
     def _required_float(value: str | None) -> float:
         return float(value or 0)
+
+    @staticmethod
+    def _format_gtfs_time(value: int | None) -> str | None:
+        if value is None:
+            return None
+        hours, remainder = divmod(value, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"

@@ -46,7 +46,9 @@ pnpm dev
 
 ## Variáveis
 
-- `NEXT_PUBLIC_API_URL`: URL pública da API FastAPI.
+- `NEXT_PUBLIC_API_URL`: prefixo acessado pelo navegador; use `/api` no app completo.
+- `API_PROXY_TARGET`: URL do FastAPI acessada pelo servidor Next.js (`http://localhost:8000`
+  no desenvolvimento local ou `http://api:8000` no Docker Compose).
 - `NEXT_PUBLIC_REALTIME_API_URL`: reservado para o adaptador futuro de veículos e previsões.
 
 ## Contrato futuro

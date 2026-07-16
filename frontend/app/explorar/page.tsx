@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { TransitExplorer } from "@/components/transit-explorer";
+import { ExploreSection } from "@/components/roadmap/explore-section";
 
 export default function ExplorePage() {
-  return <Suspense><TransitExplorer /></Suspense>;
+  return <Suspense><ExploreSection /></Suspense>;
 }

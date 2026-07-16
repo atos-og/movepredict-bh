@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, MouseEvent } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Home, MapPin, Menu, Route, Star } from "lucide-react";
@@ -19,6 +19,14 @@ export function RoadmapNavigation({ active }: { active: (typeof items)[number]["
   const activeIndex = items.findIndex((item) => item.id === active);
   const [indicatorIndex, setIndicatorIndex] = useState(activeIndex);
   const navigationTimer = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (navigationTimer.current) window.clearTimeout(navigationTimer.current);
+  }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => setIndicatorIndex(activeIndex));
+  }, [activeIndex]);
 
   function navigate(event: MouseEvent<HTMLAnchorElement>, href: string, index: number) {
     if (
@@ -38,7 +46,10 @@ export function RoadmapNavigation({ active }: { active: (typeof items)[number]["
     if (navigationTimer.current) {
       window.clearTimeout(navigationTimer.current);
     }
-    navigationTimer.current = window.setTimeout(() => router.push(href), 260);
+    navigationTimer.current = window.setTimeout(() => {
+      navigationTimer.current = null;
+      router.push(href);
+    }, 260);
   }
 
   return (
@@ -56,7 +67,7 @@ export function RoadmapNavigation({ active }: { active: (typeof items)[number]["
           aria-current={active === id ? "page" : undefined}
           onClick={(event) => navigate(event, href, index)}
         >
-          <Icon size={20} strokeWidth={active === id ? 2.45 : 1.9} />
+          <Icon size={20} strokeWidth={indicatorIndex === index ? 2.45 : 1.9} />
           <span>{label}</span>
         </Link>
       ))}
