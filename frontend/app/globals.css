@@ -638,3 +638,277 @@ button:focus-visible, input:focus-visible, label:has(input:focus-visible) { outl
 .stop-timeline i { z-index: 1; width: 10px; height: 10px; margin-top: 4px; border: 2px solid #1769db; border-radius: 50%; background: #fff; }
 .stop-timeline span { display: flex; flex-direction: column; }.stop-timeline strong { font-size: 10px; }.stop-timeline small { color: #6b7b90; font-size: 8px; }
 .stop-timeline > div.selected { border-radius: 6px; background: #eaf2ff; }
+
+/* Mobile readability and interaction polish */
+.roadmap-primary,
+.roadmap-secondary,
+.roadmap-icon-button,
+.mobile-nav-item,
+.filter-chips button,
+.roadmap-direction-tabs button,
+.journey-preferences button {
+  -webkit-tap-highlight-color: transparent;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+.roadmap-primary:active,
+.roadmap-secondary:active,
+.roadmap-icon-button:active,
+.filter-chips button:active,
+.roadmap-direction-tabs button:active,
+.journey-preferences button:active {
+  transform: scale(.98);
+}
+button:focus-visible,
+input:focus-visible,
+a:focus-visible,
+label:has(input:focus-visible) {
+  outline: 2px solid #1769db;
+  outline-offset: 2px;
+}
+.roadmap-primary,
+.roadmap-secondary {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 14px;
+  line-height: 1.25;
+}
+.roadmap-unavailable {
+  padding: 32px 24px max(32px, env(safe-area-inset-bottom));
+}
+.roadmap-unavailable-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  background: #edf4ff;
+  color: #0d3977;
+}
+.roadmap-unavailable h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.25;
+  text-align: center;
+}
+.roadmap-unavailable > p {
+  max-width: 330px;
+  margin: 10px auto 24px;
+  color: #52657d;
+  font-size: 13px;
+  line-height: 1.55;
+  text-align: center;
+}
+.roadmap-unavailable-actions {
+  width: 100%;
+  max-width: 342px;
+  display: grid;
+  gap: 12px;
+}
+.manual-origin-search {
+  width: 100%;
+  max-width: 342px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e1e7ef;
+}
+.manual-origin-search .list-search {
+  min-height: 48px;
+  height: auto;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 0 8px 0 12px;
+  background: #fff;
+}
+.manual-origin-search .list-search button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: #eaf2ff;
+  color: #0d3977;
+  font-size: 11px;
+  font-weight: 700;
+}
+.manual-origin-search .state-warning,
+.roadmap-unavailable > .state-warning {
+  max-width: 342px;
+  margin: 12px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.manual-origin-results > button {
+  min-height: 56px;
+}
+
+.floating-navigation-item { font-size: 10px; }
+.roadmap-location-action small,
+.roadmap-recent-list small,
+.location-ready-row small,
+.resume-journey small { font-size: 10px; }
+.roadmap-section-title,
+.destination-results-heading small,
+.destination-results > a small,
+.destination-results > button small { font-size: 11px; }
+.roadmap-recent-list strong,
+.resume-journey strong { font-size: 12px; }
+
+.filter-chips button,
+.journey-preferences button {
+  min-height: 36px;
+  border-radius: 18px;
+  font-size: 10px;
+}
+.list-count,
+.nearby-content header p,
+.explore-selection-row small,
+.explore-shortcuts small,
+.about-list small,
+.line-detail-content header small,
+.line-location-note small,
+.stop-timeline small { font-size: 10px; }
+.roadmap-line-list > a { min-height: 64px; }
+.roadmap-line-list strong,
+.nearby-cards strong,
+.explore-shortcuts strong,
+.line-location-note strong,
+.stop-timeline strong { font-size: 12px; }
+.roadmap-line-list small,
+.nearby-cards small { font-size: 10px; }
+.nearby-cards em { font-size: 9px; }
+.nearby-location-request {
+  min-height: 40px;
+  font-size: 11px;
+}
+.nearby-content > .list-search > button,
+.roadmap-icon-button {
+  width: 40px;
+  height: 40px;
+}
+.explore-heading p { font-size: 11px; }
+.explore-selection-row strong,
+.about-list strong { font-size: 13px; }
+
+.best-route-header small,
+.route-mode-row,
+.vehicles-on-route,
+.active-line-header small,
+.next-stop > small,
+.next-stop p,
+.upcoming-stops small,
+.bus-map-card small,
+.route-summary-bar > span:first-child small { font-size: 10px; }
+.realtime-pill {
+  min-height: 28px;
+  border-radius: 14px;
+  font-size: 9px;
+}
+.arrival-copy,
+.journey-details-link {
+  font-size: 11px;
+}
+.journey-details-link { min-height: 44px; }
+.journey-alternatives > small { font-size: 9px; }
+.journey-alternatives button { min-height: 46px; }
+.journey-alternatives button strong { font-size: 12px; }
+.journey-alternatives button small { font-size: 10px; }
+.journey-actions button { font-size: 11px; }
+.route-summary-bar span { font-size: 11px; }
+.roadmap-journey-steps strong { font-size: 12px; }
+.roadmap-journey-steps small { font-size: 10px; }
+
+.journey-live-status {
+  min-height: 32px;
+  font-size: 10px;
+}
+.active-journey-sheet header small,
+.active-journey-sheet header p,
+.get-off-alert small,
+.service-alert small,
+.active-route-facts small,
+.active-next-steps small,
+.journey-inline-warning { font-size: 10px; }
+.get-off-alert strong,
+.service-alert strong,
+.active-next-steps strong { font-size: 12px; }
+.active-route-facts span { min-height: 58px; }
+.active-route-facts strong { font-size: 11px; }
+.active-next-steps > div { min-height: 50px; }
+.finish-journey {
+  min-height: 44px;
+  font-size: 11px;
+}
+.line-detail-content header h2 { font-size: 14px; }
+.roadmap-direction-tabs button {
+  min-height: 42px;
+  height: auto;
+}
+.line-location-note { min-height: 64px; }
+.stop-timeline > div { min-height: 56px; }
+
+.roadmap-header {
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  padding-inline: 10px;
+}
+.roadmap-logo,
+.roadmap-header-action {
+  width: 40px;
+  height: 40px;
+}
+.roadmap-section-title a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.roadmap-recent-list button,
+.roadmap-recent-list a { min-height: 48px; }
+.search-field {
+  grid-template-columns: 22px minmax(0, 1fr) 40px;
+  padding-right: 4px;
+}
+.search-field button {
+  width: 40px;
+  height: 40px;
+}
+.explore-selection-row > button,
+.stop-arrivals-sheet header button,
+.map-floating-actions button {
+  width: 44px;
+  height: 44px;
+}
+.line-map-back,
+.roadmap-load-more,
+.roadmap-inline-error button {
+  min-height: 44px;
+}
+.leaflet-touch .leaflet-bar a {
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+}
+
+.route-page:has(.best-route)::before,
+.route-details-page.visual-preview::before,
+.active-route-page::before,
+.bus-map-page.visual-preview::before {
+  top: 8px;
+  right: auto;
+  left: 16px;
+  font-size: 9px;
+  transform: none;
+}
+.route-page:has(.best-route) .best-route { padding-top: 42px; }
+.route-details-page.visual-preview,
+.active-route-page { padding-top: 28px; }
+.best-route > header small { font-size: 10px; }
+.alternative-title,
+.alternative-route span { font-size: 10px; }
+
+@media (max-width: 359px) {
+  .roadmap-unavailable { padding-inline: 18px; }
+  .roadmap-primary,
+  .roadmap-secondary { padding-inline: 12px; font-size: 13px; }
+  .journey-actions { grid-template-columns: 1fr; }
+}

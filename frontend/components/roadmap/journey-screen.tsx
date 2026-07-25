@@ -122,7 +122,64 @@ function LocationRequired({ destination, geo, onManualOrigin }: { destination: s
     setResults(response.data);
   }
 
-  return <main className="roadmap-page route-page"><AppHeader title={destination} backHref="/" /><section className="roadmap-unavailable"><LocateFixed size={30} /><h2>De onde voce esta saindo?</h2><p>Use sua localizacao para encontrarmos caminhada, ponto, linha e desembarque automaticamente.</p><button className="roadmap-primary" onClick={geo.requestLocation} disabled={geo.status === "requesting"}><LocateFixed size={18} />{geo.status === "requesting" ? "Obtendo localizacao..." : "Usar minha localizacao"}</button><button className="roadmap-secondary" onClick={() => setManual((value) => !value)}><MapPin size={17} />Informar outro ponto de partida</button>{manual && <div className="manual-origin-search"><form className="list-search" onSubmit={searchOrigin}><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar origem em Belo Horizonte" /><button type="submit" disabled={searching || query.trim().length < 2}>{searching ? "Buscando" : "Buscar"}</button></form>{searchError && <p className="state-warning">Busca de origem indisponivel. Tente novamente.</p>}{!searching && query.trim().length >= 2 && !searchError && results.length === 0 && <p className="state-warning">Nenhuma origem encontrada.</p>}<div className="manual-origin-results">{results.map((result) => <button key={result.id} onClick={() => onManualOrigin(result)}><MapPin size={16} /><span><strong>{result.label}</strong><small>{result.description}</small></span><ChevronRight size={16} /></button>)}</div></div>}{geo.status === "denied" && <p className="state-warning">Permissao negada. Libere a localizacao nas configuracoes do navegador ou informe outra origem.</p>}{["unavailable", "timeout", "unsupported"].includes(geo.status) && <p className="state-warning">Nao foi possivel obter a localizacao neste dispositivo. Informe outra origem ou tente novamente em HTTPS.</p>}</section></main>;
+  return (
+    <main className="roadmap-page route-page">
+      <AppHeader title={destination} backHref="/" />
+      <section className="roadmap-unavailable">
+        <span className="roadmap-unavailable-icon" aria-hidden="true">
+          <LocateFixed size={28} />
+        </span>
+        <h2>De onde voce esta saindo?</h2>
+        <p>Use sua localizacao para encontrarmos caminhada, ponto, linha e desembarque automaticamente.</p>
+        <div className="roadmap-unavailable-actions">
+          <button className="roadmap-primary" onClick={geo.requestLocation} disabled={geo.status === "requesting"}>
+            <LocateFixed size={18} />
+            {geo.status === "requesting" ? "Obtendo localizacao..." : "Usar minha localizacao"}
+          </button>
+          <button
+            className="roadmap-secondary"
+            onClick={() => setManual((value) => !value)}
+            aria-expanded={manual}
+          >
+            <MapPin size={17} />
+            {manual ? "Fechar busca de origem" : "Informar outro ponto de partida"}
+          </button>
+        </div>
+        {manual && (
+          <div className="manual-origin-search">
+            <form className="list-search" onSubmit={searchOrigin}>
+              <Search size={17} />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar origem em Belo Horizonte"
+                aria-label="Buscar outro ponto de partida"
+              />
+              <button type="submit" disabled={searching || query.trim().length < 2}>
+                {searching ? "Buscando" : "Buscar"}
+              </button>
+            </form>
+            {searchError && <p className="state-warning">Busca de origem indisponivel. Tente novamente.</p>}
+            {!searching && query.trim().length >= 2 && !searchError && results.length === 0 && <p className="state-warning">Nenhuma origem encontrada.</p>}
+            <div className="manual-origin-results">
+              {results.map((result) => (
+                <button key={result.id} onClick={() => onManualOrigin(result)}>
+                  <MapPin size={16} />
+                  <span>
+                    <strong>{result.label}</strong>
+                    <small>{result.description}</small>
+                  </span>
+                  <ChevronRight size={16} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {geo.status === "denied" && <p className="state-warning">Permissao negada. Libere a localizacao nas configuracoes do navegador ou informe outra origem.</p>}
+        {["unavailable", "timeout", "unsupported"].includes(geo.status) && <p className="state-warning">Nao foi possivel obter a localizacao neste dispositivo. Informe outra origem ou tente novamente em HTTPS.</p>}
+      </section>
+    </main>
+  );
 }
 
 function LoadingRoute({ destination }: { destination: string }) {
@@ -130,7 +187,22 @@ function LoadingRoute({ destination }: { destination: string }) {
 }
 
 function Unavailable({ title, message, retry }: { title: string; message: string; retry?: () => void }) {
-  return <main className="roadmap-page route-page"><AppHeader title="Planejar viagem" backHref="/" /><section className="roadmap-unavailable"><MapPin size={30} /><h2>{title}</h2><p>{message}</p>{retry && <button className="roadmap-primary" onClick={retry}><RefreshCw size={17} />Tentar novamente</button>}<Link className="roadmap-secondary" href="/">Voltar ao inicio</Link></section></main>;
+  return (
+    <main className="roadmap-page route-page">
+      <AppHeader title="Planejar viagem" backHref="/" />
+      <section className="roadmap-unavailable">
+        <span className="roadmap-unavailable-icon" aria-hidden="true">
+          <MapPin size={28} />
+        </span>
+        <h2>{title}</h2>
+        <p>{message}</p>
+        <div className="roadmap-unavailable-actions">
+          {retry && <button className="roadmap-primary" onClick={retry}><RefreshCw size={17} />Tentar novamente</button>}
+          <Link className="roadmap-secondary" href="/">Voltar ao inicio</Link>
+        </div>
+      </section>
+    </main>
+  );
 }
 
 function RealtimeLabel({ plan }: { plan: JourneyPlan }) {

@@ -58,3 +58,43 @@ test("destination search keeps a readable mobile hierarchy", async ({ page }) =>
   expect(layout.tabDecorations.every((decoration) => decoration === "none")).toBe(true);
   expect(layout.controlSizes.every(({ height, width }) => height >= 40 && width >= 40)).toBe(true);
 });
+
+test("route origin actions keep equal dimensions and clear spacing", async ({ page }) => {
+  await page.goto("/rota?destination=Savassi&lat=-19.937246&lon=-43.9355817");
+  await expect(page.getByRole("heading", { name: "De onde voce esta saindo?" })).toBeVisible();
+
+  const layout = await page.locator(".roadmap-unavailable-actions").evaluate((actions) => {
+    const controls = [...actions.querySelectorAll<HTMLElement>("button, a")];
+    const boxes = controls.map((control) => control.getBoundingClientRect());
+    return {
+      widths: boxes.map((box) => box.width),
+      heights: boxes.map((box) => box.height),
+      gap: boxes[1].top - boxes[0].bottom,
+    };
+  });
+
+  expect(layout.widths).toHaveLength(2);
+  expect(Math.abs(layout.widths[0] - layout.widths[1])).toBeLessThan(1);
+  expect(layout.heights.every((height) => height >= 48)).toBe(true);
+  expect(layout.gap).toBeGreaterThanOrEqual(12);
+});
+
+test("manual origin search opens as a separate section", async ({ page }) => {
+  await page.goto("/rota?destination=Savassi&lat=-19.937246&lon=-43.9355817");
+  const toggle = page.locator(".roadmap-unavailable-actions .roadmap-secondary");
+  await expect(toggle).toHaveText("Informar outro ponto de partida");
+  await toggle.click();
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(toggle).toHaveText("Fechar busca de origem");
+  await expect(page.getByLabel("Buscar outro ponto de partida")).toBeVisible();
+
+  const separation = await page.evaluate(() => {
+    const actions = document.querySelector(".roadmap-unavailable-actions")?.getBoundingClientRect();
+    const search = document.querySelector(".manual-origin-search")?.getBoundingClientRect();
+    if (!actions || !search) throw new Error("Origin controls were not rendered");
+    return search.top - actions.bottom;
+  });
+
+  expect(separation).toBeGreaterThanOrEqual(20);
+});

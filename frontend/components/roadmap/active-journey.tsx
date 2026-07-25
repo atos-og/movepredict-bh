@@ -188,5 +188,42 @@ function nextInstruction(step: JourneyStep): string {
 
 function PreviewJourney({ map }: { map: boolean }) {
   if (map) return <main className="roadmap-page bus-map-page visual-preview"><h1 className="sr-only">Mapa da viagem na linha 1170</h1><RoadmapMap userLocation={{ latitude: -19.931, longitude: -43.941 }} vehicles={[previewVehicle]} showVehicles /><div className="map-floating-actions"><button aria-label="Minha localizacao"><LocateFixed size={19} /></button><button aria-label="Camadas"><Layers3 size={19} /></button></div><section className="bus-map-card"><div><LineBadge value="1170" /><span><strong>Linha 1170</strong><small>Proximo onibus em horario programado</small></span></div><BusFront size={22} /></section></main>;
-  return <main className="roadmap-page active-route-page"><h1 className="sr-only">Viagem em andamento na linha 1170</h1><header className="active-line-header"><BusFront size={20} /><span><strong>Linha 1170</strong><small>Santa Lucia / Mangabeiras</small></span></header><section className="next-stop"><small>Proxima parada</small><strong>Savassi</strong><span>09:28</span><p>Partida programada - em 4 paradas</p></section><Link className="roadmap-primary route-bottom-action" href="/viagem?preview=1&map=1">Acompanhar no mapa</Link></main>;
+  const upcoming = [
+    ["Estacao BHBus", "09:05"],
+    ["Av. Amazonas", "09:12"],
+    ["Savassi", "09:28"],
+    ["Rua Sergipe", "09:36"],
+    ["Praca da Liberdade", "09:42"],
+  ];
+
+  return (
+    <main className="roadmap-page active-route-page">
+      <h1 className="sr-only">Viagem em andamento na linha 1170</h1>
+      <header className="active-line-header">
+        <BusFront size={20} />
+        <span>
+          <strong>Linha 1170</strong>
+          <small>Santa Lucia / Mangabeiras</small>
+        </span>
+      </header>
+      <section className="next-stop">
+        <small>Proxima parada</small>
+        <strong>Savassi</strong>
+        <span>09:28</span>
+        <p>Partida programada - em 4 paradas</p>
+      </section>
+      <ol className="upcoming-stops" aria-label="Proximas paradas programadas">
+        {upcoming.map(([name, time]) => (
+          <li className={name === "Savassi" ? "selected" : ""} key={name}>
+            <i aria-hidden="true" />
+            <span>
+              <strong>{name}</strong>
+              <small>{time}</small>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <Link className="roadmap-primary route-bottom-action" href="/viagem?preview=1&map=1">Acompanhar no mapa</Link>
+    </main>
+  );
 }
