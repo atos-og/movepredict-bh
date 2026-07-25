@@ -34,3 +34,27 @@ test("home loads without horizontal overflow", async ({ page }) => {
   }));
   expect(layout.content).toBeLessThanOrEqual(layout.viewport);
 });
+
+test("destination search keeps a readable mobile hierarchy", async ({ page }) => {
+  await page.goto("/?screen=search");
+
+  const layout = await page.evaluate(() => {
+    const tabItems = [...document.querySelectorAll<HTMLElement>(".search-tabs > *")];
+    const controls = [...document.querySelectorAll<HTMLElement>(".search-submit, .search-cancel")];
+    return {
+      viewport: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth,
+      tabHeights: tabItems.map((item) => item.getBoundingClientRect().height),
+      tabDecorations: tabItems.map((item) => getComputedStyle(item).textDecorationLine),
+      controlSizes: controls.map((control) => ({
+        height: control.getBoundingClientRect().height,
+        width: control.getBoundingClientRect().width,
+      })),
+    };
+  });
+
+  expect(layout.content).toBeLessThanOrEqual(layout.viewport);
+  expect(layout.tabHeights.every((height) => height >= 38)).toBe(true);
+  expect(layout.tabDecorations.every((decoration) => decoration === "none")).toBe(true);
+  expect(layout.controlSizes.every(({ height, width }) => height >= 40 && width >= 40)).toBe(true);
+});

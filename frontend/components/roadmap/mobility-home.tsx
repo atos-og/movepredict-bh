@@ -3,7 +3,17 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronRight, Clock3, LocateFixed, MapPin, Search, X } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  ChevronRight,
+  Clock3,
+  Loader2,
+  LocateFixed,
+  MapPin,
+  Search,
+  X,
+} from "lucide-react";
 import { AppHeader } from "@/components/roadmap/app-header";
 import { LocationLoadingSheet } from "@/components/roadmap/location-loading-sheet";
 import { RoadmapMap } from "@/components/roadmap/roadmap-map";
@@ -112,16 +122,65 @@ function DestinationSearchScreen({ value, origin, onChange, onCancel }: { value:
 
   return <main className="roadmap-search-screen">
     <h1 className="sr-only">Buscar destino</h1>
-    <form className="search-top" onSubmit={search}><label><Search size={17} /><input autoFocus value={value} onChange={(event) => { onChange(event.target.value); setState("idle"); setResults([]); }} placeholder="Para onde voce quer ir?" />{value && <button type="button" onClick={() => { onChange(""); setResults([]); setState("idle"); }} aria-label="Limpar"><X size={16} /></button>}</label><button type="submit" disabled={value.trim().length < 2 || state === "loading"}>Buscar</button><button type="button" onClick={onCancel} aria-label="Cancelar"><X size={18} /></button></form>
-    <div className="search-tabs"><button className="active">Destinos</button><Link href="/pontos">Pontos</Link><Link href="/linhas">Linhas</Link></div>
+    <form className="search-top" onSubmit={search}>
+      <div className="search-field">
+        <Search size={19} />
+        <input
+          aria-label="Destino"
+          autoFocus
+          value={value}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setState("idle");
+            setResults([]);
+          }}
+          placeholder="Para onde voce quer ir?"
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setResults([]);
+              setState("idle");
+            }}
+            aria-label="Limpar busca"
+          >
+            <X size={17} />
+          </button>
+        )}
+      </div>
+      <button
+        className="search-submit"
+        type="submit"
+        disabled={value.trim().length < 2 || state === "loading"}
+        aria-label="Buscar destino"
+      >
+        {state === "loading" ? <Loader2 className="spin" size={18} /> : <ArrowRight size={19} />}
+      </button>
+      <button className="search-cancel" type="button" onClick={onCancel} aria-label="Cancelar busca">
+        <X size={20} />
+      </button>
+    </form>
+    <nav className="search-tabs" aria-label="Tipos de busca">
+      <button className="active" type="button" aria-current="page">Destinos</button>
+      <Link href="/pontos">Pontos</Link>
+      <Link href="/linhas">Linhas</Link>
+    </nav>
     <div className="destination-results">
-      {state === "loading" && <small className="preview-label">Buscando enderecos em Belo Horizonte...</small>}
-      {state === "empty" && <small className="preview-label">Nenhum destino encontrado.</small>}
-      {state === "unavailable" && <small className="preview-label">Busca de enderecos indisponivel. Tente novamente.</small>}
+      <header className="destination-results-heading">
+        <span>
+          <strong>{state === "idle" ? "Destinos populares" : "Resultados da busca"}</strong>
+          <small>{state === "idle" ? "Sugestoes em Belo Horizonte" : `Para "${value.trim()}"`}</small>
+        </span>
+      </header>
+      {state === "loading" && <div className="search-feedback"><Loader2 className="spin" size={22} /><strong>Buscando destinos...</strong><span>Consultando enderecos em Belo Horizonte.</span></div>}
+      {state === "empty" && <div className="search-feedback"><Search size={22} /><strong>Nenhum destino encontrado</strong><span>Revise o nome ou tente informar um endereco.</span></div>}
+      {state === "unavailable" && <div className="search-feedback error"><AlertCircle size={22} /><strong>Busca temporariamente indisponivel</strong><span>Verifique sua conexao e tente novamente.</span></div>}
       {results.map((place) => <Link href={`/rota?destination=${encodeURIComponent(place.label)}&lat=${place.coordinates.latitude}&lon=${place.coordinates.longitude}`} key={place.id}><span><MapPin size={17} /></span><span><strong>{place.label}</strong><small>{place.description}</small></span><ChevronRight size={16} /></Link>)}
       {state === "idle" && popularPlaces.map((place) => <button type="button" key={place} onClick={() => choosePopular(place)}><span><MapPin size={17} /></span><span><strong>{place}</strong><small>Belo Horizonte - MG</small></span><ChevronRight size={16} /></button>)}
     </div>
-    <small className="geocoding-attribution">Busca de enderecos por OpenStreetMap</small>
+    <small className="geocoding-attribution"><MapPin size={11} />Enderecos por OpenStreetMap</small>
     <RoadmapNavigation active="home" />
   </main>;
 }
