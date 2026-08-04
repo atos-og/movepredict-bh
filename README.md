@@ -94,6 +94,10 @@ pnpm build
 
 Com os dados GTFS locais disponíveis:
 
+Antes do primeiro uso, copie `.env.example` para `.env` e substitua
+`POSTGRES_PASSWORD=CHANGE_ME_LOCAL_ONLY` por uma senha local. Se `.env` já existir, preserve-o e
+adicione apenas as variáveis `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD` ausentes.
+
 ```powershell
 docker compose up --build
 ```

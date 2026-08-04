@@ -241,3 +241,17 @@ routing/otp/*.obj
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Environment files
+.env*
+!.env.example
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Service credentials
+credentials*.json
+service-account*.json

@@ -53,6 +53,10 @@ gerada a partir de latitude/longitude e índice GiST. O histórico também possu
 e B-tree composto por veículo/linha/viagem e instante. No Mac Apple Silicon, a imagem oficial roda
 sob `linux/amd64`; a migration e os testes foram validados nessa configuração.
 
+Antes de iniciar o Compose pela primeira vez, copie `.env.example` para `.env` e troque o valor
+fictício de `POSTGRES_PASSWORD`. Se o arquivo local já existir, não o sobrescreva: adicione somente
+as variáveis PostgreSQL ausentes.
+
 ```bash
 docker compose up -d db
 cd backend
