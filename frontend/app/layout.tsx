@@ -29,6 +29,10 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
+        url: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/favicon.svg`,
+        type: "image/svg+xml",
+      },
+      {
         url: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/icon-192.png`,
         sizes: "192x192",
         type: "image/png",

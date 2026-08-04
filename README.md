@@ -130,8 +130,25 @@ Com PostgreSQL, importacao GTFS e coletor ativos, a API disponibiliza:
 - `GET /metrics`: contadores HTTP no formato Prometheus.
 
 O frontend atualiza veiculos e previsoes a cada 20 segundos e diferencia dados vazios,
-desatualizados e indisponiveis. A busca de enderecos usa `NEXT_PUBLIC_GEOCODING_URL`,
-que deve apontar para uma instancia propria ou provedor que autorize autocomplete.
-O planejamento completo de transporte publico ainda requer a configuracao de um motor como
-OpenTripPlanner em `NEXT_PUBLIC_JOURNEY_PLANNER_URL`; nenhuma rota e inventada quando esse
-servico nao esta disponivel.
+desatualizados e indisponiveis. Nenhuma rota, previsao ou alerta e inventado quando uma fonte
+nao esta disponivel.
+
+## Assistente porta a porta
+
+A integracao atual centraliza geocodificacao e roteamento no backend. O frontend oferece busca
+explicita de destinos em BH, tres preferencias de rota, alternativas, acompanhamento, recálculo
+fora da rota, salvamento offline e aviso de desembarque. ETA real e usado apenas quando o
+endpoint informa estado `live`; caso contrario, a interface identifica o horario programado.
+
+Para preparar o OpenTripPlanner local pela primeira vez:
+
+```powershell
+python scripts/prepare_otp.py
+docker compose --profile routing-tools run --rm otp-build
+docker compose --profile routing up -d otp
+docker compose up --build
+```
+
+O processo usa OSM e GTFS oficiais, nao exige credencial e nao gera custo de API. O grafo local
+`routing/otp/graph.obj` e gerado em cada ambiente e nao e versionado. Consulte
+[`docs/MOBILITY_ASSISTANT.md`](docs/MOBILITY_ASSISTANT.md) para contratos e limites.

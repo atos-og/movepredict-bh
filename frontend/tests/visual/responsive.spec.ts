@@ -50,12 +50,34 @@ test("favorites and more preserve the selected navigation item", async ({ page }
   await page.getByRole("link", { name: "Favoritos", exact: true }).click();
 
   await page.waitForURL(/\/explorar\?view=favorites$/);
-  await expect(page.locator(".mobile-bottom-navigation [aria-current='page']")).toHaveText(
-    "Favoritos",
-  );
-  await expect(page.locator(".panel-header > strong")).toHaveText("Favoritos");
+  await expect(page.locator(".roadmap-nav [aria-current='page']")).toHaveText("Favoritos");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Favoritos");
+  await expect(page.locator(".experience-panel")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Mais", exact: true }).click();
-  await expect(page.locator(".mobile-bottom-navigation [aria-current='page']")).toHaveText("Mais");
-  await expect(page.locator(".panel-header > strong")).toHaveText("Mais");
+  await page.getByRole("link", { name: "Mais", exact: true }).click();
+  await page.waitForURL(/\/explorar\?view=more$/);
+  await expect(page.locator(".roadmap-nav [aria-current='page']")).toHaveText("Mais");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mais");
+});
+
+test("primary screens keep one page heading and no horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const path of [
+    "/",
+    "/linhas",
+    "/pontos",
+    "/rota",
+    "/viagem",
+    "/explorar",
+    "/explorar?view=favorites",
+    "/explorar?view=more",
+  ]) {
+    await page.goto(path);
+    await expect(page.locator("h1")).toHaveCount(1);
+    const layout = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(layout.scrollWidth, path).toBe(layout.clientWidth);
+  }
 });

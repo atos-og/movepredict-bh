@@ -7,6 +7,6 @@ import type { VehiclePosition } from "@/types/realtime";
 
 const MapView = dynamic(() => import("@/components/map-view"), { ssr: false, loading: () => <div className="roadmap-map-loading" /> });
 
-export function RoadmapMap({ userLocation = null, nearbyStops = [], lineStops = [], route = null, vehicles = [], showVehicles = false }: { userLocation?: Coordinates | null; nearbyStops?: Stop[]; lineStops?: LineStop[]; route?: LineRoute | null; vehicles?: VehiclePosition[]; showVehicles?: boolean }) {
-  return <div className="roadmap-map"><MapView selectedStop={null} lineStops={lineStops} route={route} userLocation={userLocation} nearbyStops={nearbyStops} vehicles={vehicles} showRoute={Boolean(route)} showStops showVehicles={showVehicles} recenterToken={0} onStopSelect={() => undefined} /></div>;
+export function RoadmapMap({ userLocation = null, nearbyStops = [], lineStops = [], route = null, vehicles = [], showVehicles = false, journeyGeometry = [] }: { userLocation?: Coordinates | null; nearbyStops?: Stop[]; lineStops?: LineStop[]; route?: LineRoute | null; vehicles?: VehiclePosition[]; showVehicles?: boolean; journeyGeometry?: Coordinates[] }) {
+  return <div className="roadmap-map"><MapView selectedStop={null} lineStops={lineStops} route={route} userLocation={userLocation} nearbyStops={nearbyStops} vehicles={vehicles} showRoute={Boolean(route)} showStops showVehicles={showVehicles} journeyGeometry={journeyGeometry} recenterToken={0} onStopSelect={() => undefined} /></div>;
 }

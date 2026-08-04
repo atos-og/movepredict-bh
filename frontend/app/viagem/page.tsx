@@ -7,7 +7,7 @@ import { ActiveJourney } from "@/components/roadmap/active-journey";
 function JourneyContent() {
   const params = useSearchParams();
   const preview = (process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_ENABLE_VISUAL_PREVIEW === "true") && params.get("preview") === "1";
-  return <ActiveJourney preview={preview} map={params.get("map") === "1"} />;
+  return <ActiveJourney preview={preview} map={params.get("map") === "1"} savedId={params.get("saved")} />;
 }
 
 export default function JourneyPage() {

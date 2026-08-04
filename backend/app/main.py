@@ -13,7 +13,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from app.config import get_settings
 from app.exceptions import AppError
 from app.observability import logger, record_request
-from app.routers import lines, realtime, stops, system
+from app.routers import alerts, lines, mobility, realtime, stops, system
 
 
 def create_app() -> FastAPI:
@@ -39,6 +39,8 @@ def create_app() -> FastAPI:
     application.include_router(lines.router)
     application.include_router(stops.router)
     application.include_router(realtime.router)
+    application.include_router(alerts.router)
+    application.include_router(mobility.router)
 
     @application.middleware("http")
     async def add_request_id(request: Request, call_next):

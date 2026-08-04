@@ -11,14 +11,17 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ARG NEXT_PUBLIC_API_URL=/api
+ARG API_PROXY_TARGET=http://api:8000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV API_PROXY_TARGET=$API_PROXY_TARGET
 RUN pnpm build
 
 FROM node:22-alpine AS runner
 ENV NODE_ENV=production \
     PORT=3000 \
-    HOSTNAME=0.0.0.0
+    HOSTNAME=0.0.0.0 \
+    API_PROXY_TARGET=http://api:8000
 WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public

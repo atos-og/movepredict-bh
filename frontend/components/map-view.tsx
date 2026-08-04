@@ -19,28 +19,44 @@ type Props = {
   showVehicles: boolean;
   recenterToken: number;
   onStopSelect: (stop: Stop) => void;
+  journeyGeometry?: Coordinates[];
 };
 
 const BH_CENTER: [number, number] = [-19.9167, -43.9345];
+
+function MapAccessibility() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    container.setAttribute("role", "region");
+    container.setAttribute("aria-label", "Mapa de mobilidade de Belo Horizonte");
+  }, [map]);
+
+  return null;
+}
 
 function ViewportController({
   selectedStop,
   route,
   userLocation,
   recenterToken,
-}: Pick<Props, "selectedStop" | "route" | "userLocation" | "recenterToken">) {
+  journeyGeometry = [],
+}: Pick<Props, "selectedStop" | "route" | "userLocation" | "recenterToken" | "journeyGeometry">) {
   const map = useMap();
 
   useEffect(() => {
     if (selectedStop) {
       map.flyTo([selectedStop.stop_lat, selectedStop.stop_lon], 16, { duration: 0.7 });
+    } else if (journeyGeometry.length) {
+      map.fitBounds(journeyGeometry.map((point) => [point.latitude, point.longitude] as [number, number]), { padding: [36, 36], maxZoom: 16 });
     } else if (route?.geometry.coordinates.length) {
       const bounds = route.geometry.coordinates.map(([lon, lat]) => [lat, lon] as [number, number]);
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     } else if (userLocation) {
       map.flyTo([userLocation.latitude, userLocation.longitude], 16, { duration: 0.7 });
     }
-  }, [map, recenterToken, route, selectedStop, userLocation]);
+  }, [journeyGeometry, map, recenterToken, route, selectedStop, userLocation]);
 
   return null;
 }
@@ -57,11 +73,13 @@ export default function MapView({
   showVehicles,
   recenterToken,
   onStopSelect,
+  journeyGeometry = [],
 }: Props) {
   const positions = route?.geometry.coordinates.map(([lon, lat]) => [lat, lon] as [number, number]);
 
   return (
     <MapContainer center={BH_CENTER} zoom={13} className="map" zoomControl attributionControl>
+      <MapAccessibility />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -71,6 +89,7 @@ export default function MapView({
         route={route}
         userLocation={userLocation}
         recenterToken={recenterToken}
+        journeyGeometry={journeyGeometry}
       />
       {userLocation && (
         <>
@@ -91,6 +110,9 @@ export default function MapView({
       )}
       {showRoute && positions && (
         <Polyline positions={positions} pathOptions={{ color: "#07866f", weight: 6, opacity: 0.88 }} />
+      )}
+      {journeyGeometry.length > 1 && (
+        <Polyline positions={journeyGeometry.map((point) => [point.latitude, point.longitude])} pathOptions={{ color: "#1261c9", weight: 6, opacity: 0.9 }} />
       )}
       {showStops &&
         lineStops.map((stop) => (
