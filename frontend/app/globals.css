@@ -389,7 +389,9 @@ button:focus-visible, input:focus-visible, label:has(input:focus-visible) { outl
 .search-field { height: 48px; display: grid; grid-template-columns: 22px minmax(0, 1fr) 34px; align-items: center; gap: 8px; padding: 0 7px 0 12px; border: 1px solid #b9c6d6; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgba(7, 26, 61, .04); transition: border-color .2s ease, box-shadow .2s ease; }
 .search-field:focus-within { border-color: #1769db; box-shadow: 0 0 0 3px rgba(23, 105, 219, .12); }
 .search-field > svg { color: #0d3977; }
-.search-field input { min-width: 0; border: 0; outline: 0; background: transparent; color: #071a3d; font-size: 15px; }
+.search-field input { width: 100%; min-width: 0; height: 100%; border: 0; border-radius: 0; outline: 0; background: transparent; color: #071a3d; font-size: 15px; -webkit-appearance: none; appearance: none; }
+.search-field input:focus,
+.search-field input:focus-visible { outline: 0; box-shadow: none; }
 .search-field input::placeholder { color: #78879a; }
 .search-field button, .search-submit, .search-cancel { width: 40px; height: 40px; display: grid; place-items: center; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .search-field button { width: 34px; height: 34px; border-radius: 50%; background: transparent; color: #607087; }
