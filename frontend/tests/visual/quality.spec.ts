@@ -59,6 +59,30 @@ test("destination search keeps a readable mobile hierarchy", async ({ page }) =>
   expect(layout.controlSizes.every(({ height, width }) => height >= 40 && width >= 40)).toBe(true);
 });
 
+test("destination search uses one rounded focus ring", async ({ page }) => {
+  await page.goto("/?screen=search");
+  const input = page.getByRole("textbox", { name: "Destino", exact: true });
+  await input.click();
+
+  const focusStyles = await input.evaluate((element) => {
+    const inputStyle = getComputedStyle(element);
+    const field = element.closest<HTMLElement>(".search-field");
+    if (!field) throw new Error("Search field was not rendered");
+    const fieldStyle = getComputedStyle(field);
+    return {
+      inputOutline: inputStyle.outlineStyle,
+      inputShadow: inputStyle.boxShadow,
+      fieldRadius: Number.parseFloat(fieldStyle.borderRadius),
+      fieldShadow: fieldStyle.boxShadow,
+    };
+  });
+
+  expect(focusStyles.inputOutline).toBe("none");
+  expect(focusStyles.inputShadow).toBe("none");
+  expect(focusStyles.fieldRadius).toBeGreaterThanOrEqual(10);
+  expect(focusStyles.fieldShadow).not.toBe("none");
+});
+
 test("route origin actions keep equal dimensions and clear spacing", async ({ page }) => {
   await page.goto("/rota?destination=Savassi&lat=-19.937246&lon=-43.9355817");
   await expect(page.getByRole("heading", { name: "De onde voce esta saindo?" })).toBeVisible();
